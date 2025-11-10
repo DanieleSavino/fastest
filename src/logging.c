@@ -36,33 +36,38 @@ void FASTEST_Print_result(const FASTEST_TestOutput *out) {
     
     // Print success / error / warning / log based on flags
     if (out->exit_status & FASTEST_SUCCESS) {
-        SUCCESS_PRINTF("%s", out->test_name);
+        SUCCESS_PRINTF(FASTEST_BOLD "%s" FASTEST_RESET, out->test_name);
     } else {
         // Check which failure mode to use
         if (out->test_flags & FASTEST_FAIL_ERROR) {
-            ERROR_PRINTF("%s: %s", out->test_name, errstr);
+            ERROR_PRINTF(FASTEST_BOLD "%s" FASTEST_RESET ": %s", out->test_name, errstr);
         } else if (out->test_flags & FASTEST_FAIL_WARNING) {
-            WARNING_PRINTF("%s: %s", out->test_name, errstr);
+            WARNING_PRINTF(FASTEST_BOLD "%s" FASTEST_RESET ": %s", out->test_name, errstr);
         } else if (out->test_flags & FASTEST_FAIL_LOG) {
-            LOG_PRINTF("%s: %s", out->test_name, errstr);
+            LOG_PRINTF(FASTEST_BOLD "%s" FASTEST_RESET ": %s", out->test_name, errstr);
         }
     }
     
     // Time reporting
     if (out->test_flags & (FASTEST_TIME_S | FASTEST_TIME_MS | FASTEST_TIME_US | FASTEST_TIME_NS)) {
         if (out->test_flags & FASTEST_TIME_S) {
-            LOG_PRINTF("%s: [time: %.6fs]", out->test_name, (double)out->time_ns / 1e9);
+            LOG_PRINTF(FASTEST_BOLD "%s" FASTEST_RESET ": [time: %.6fs]", out->test_name, (double)out->time_ns / 1e9);
         } else if (out->test_flags & FASTEST_TIME_MS) {
-            LOG_PRINTF("%s: [time: %.3fms]", out->test_name, (double)out->time_ns / 1e6);
+            LOG_PRINTF(FASTEST_BOLD "%s" FASTEST_RESET ": [time: %.3fms]", out->test_name, (double)out->time_ns / 1e6);
         } else if (out->test_flags & FASTEST_TIME_US) {
-            LOG_PRINTF("%s: [time: %.3fus]", out->test_name, (double)out->time_ns / 1e3);
+            LOG_PRINTF(FASTEST_BOLD "%s" FASTEST_RESET ": [time: %.3fus]", out->test_name, (double)out->time_ns / 1e3);
         } else if (out->test_flags & FASTEST_TIME_NS) {
-            LOG_PRINTF(FASTEST_MAGENTA FASTEST_UNDERLINE "%s" FASTEST_RESET ": [time: %luns]", out->test_name, out->time_ns);
+            LOG_PRINTF(FASTEST_BOLD "%s" FASTEST_RESET ": [time: %luns]", out->test_name, out->time_ns);
         }
     }
     
     // Memory tracking
     if (out->test_flags & FASTEST_MEM_TRACK) {
-        LOG_PRINTF("[alloc=%lu, dealloc=%lu]", out->allocation, out->deallocation);
+        if(out->allocation != out->deallocation) {
+            ERROR_PRINTF(FASTEST_BOLD "%s" FASTEST_RESET "Memory leaks found: [alloc=%lu, dealloc=%lu]", out->test_name, out->allocation, out->deallocation);
+        }
+        else {
+            SUCCESS_PRINTF(FASTEST_BOLD "%s" FASTEST_RESET "No memory leaks found: [alloc=%lu, dealloc=%lu]", out->test_name, out->allocation, out->deallocation);
+        }
     }
 }
