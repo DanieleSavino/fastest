@@ -30,7 +30,6 @@ static inline const char *FASTEST_ErrorToString(uint64_t exit_status, uint64_t f
     return "Unknown status";
 }
 
-// Prints a FASTEST_QuickOutput in human-readable form
 void FASTEST_Print_result(const FASTEST_TestOutput *out) {
     if (!out) return;
     const char *errstr = FASTEST_ErrorToString(out->exit_status, out->test_flags);
@@ -47,7 +46,6 @@ void FASTEST_Print_result(const FASTEST_TestOutput *out) {
         } else if (out->test_flags & FASTEST_FAIL_LOG) {
             LOG_PRINTF("%s: %s", out->test_name, errstr);
         }
-        // If no failure flag is set, don't print anything for the failure
     }
     
     // Time reporting

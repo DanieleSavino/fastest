@@ -1,0 +1,5 @@
+test
+*.o
+build/
+compile_commands.json
+
