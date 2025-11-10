@@ -1,0 +1,32 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-I",
+      "include/",
+      "-DDEBUG",
+      "-o",
+      "test",
+      "src/main.c"
+    ],
+    "directory": "/home/daniele/dev/fatsest",
+    "file": "/home/daniele/dev/fatsest/src/main.c",
+    "output": "/home/daniele/dev/fatsest/test"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-I",
+      "include/",
+      "-DDEBUG",
+      "-o",
+      "test",
+      "src/logging.c"
+    ],
+    "directory": "/home/daniele/dev/fatsest",
+    "file": "/home/daniele/dev/fatsest/src/logging.c",
+    "output": "/home/daniele/dev/fatsest/test"
+  }
+]
