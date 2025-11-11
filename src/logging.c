@@ -31,7 +31,7 @@ static inline const char *FASTEST_ErrorToString(uint64_t exit_status, uint64_t f
 }
 
 void FASTEST_Print_result(const FASTEST_TestOutput *out) {
-    if (!out) return;
+    if (!out || !(out->exit_status & FASTEST_DEFAULT_LOG)) return;
     const char *errstr = FASTEST_ErrorToString(out->exit_status, out->test_flags);
     
     // Print success / error / warning / log based on flags
