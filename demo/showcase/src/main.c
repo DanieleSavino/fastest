@@ -1,7 +1,6 @@
-#include "quick_tests.h"
-#include "custom_tests.h"
-#include "tests.h"
-#include <alloca.h>
+#include "fastest/quick_tests.h"
+#include "fastest/custom_tests.h"
+#include "fastest/tests.h"
 
 // Simple function to test
 int add(int a, int b) {
@@ -10,6 +9,7 @@ int add(int a, int b) {
 
 // Callback function for inline mode - executed after test body completes
 void inline_callback(FASTEST_TestOutput *out) {
+    (void)(out);
     DEBUG_PRINTF("%s executed mem err: %d", out->test_name, (out->exit_status & FASTEST_ERROR_ASSERT) > 0L);
 }
 
@@ -53,7 +53,7 @@ void test(FASTEST_TestOutput *out) {
     out->exit_status |= FASTEST_DEFAULT_LOG;
 }
 
-int main(int argc, char *argv[])
+int main(void)
 {
     /*
      * MODE 1: QUICK TEST MODE (FASTEST_QUICKTEST)
@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
      * - Syntax: FASTEST_QUICKTEST(name, function, expected_value, flags, arg1, arg2, ...)
      * - Best for simple unit tests of pure functions
      */
-    FASTEST_QUICKTEST("Addition", add, 6, FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_NS, 2, 3);
+    FASTEST_QUICKTEST("Addition", add, 6, (FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_NS), 2, 3);
 
     /*
      * MODE 2: CUSTOM TEST MODE (FASTEST_CUSTOMTEST)

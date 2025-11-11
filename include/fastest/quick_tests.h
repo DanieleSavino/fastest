@@ -3,8 +3,8 @@
 #include <stdint.h>
 #include <time.h>
 
-#include "logging.h"
-#include "tests.h"
+#include "fastest/logging.h"
+#include "fastest/tests.h"
 
 #define FASTEST_QUICKTEST(name, func, expected, flags, ...)                    \
   ({                                                                           \

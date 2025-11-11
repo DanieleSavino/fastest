@@ -1,6 +1,6 @@
 #include <stdint.h>
-#include "logging.h" // ANSI colors
-#include "tests.h"
+#include "fastest/logging.h" // ANSI colors
+#include "fastest/tests.h"
 
 // Helper to convert exit_status and flags to string
 static inline const char *FASTEST_ErrorToString(uint64_t exit_status, uint64_t flags) {
