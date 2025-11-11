@@ -20,7 +20,6 @@
 #define FASTEST_MAGENTA "\033[35m"
 #define FASTEST_BLUE "\033[94m"
 
-// NO MSVC
 #define SUCCESS_PRINTF(fstring, ...)                                           \
     fprintf(stdout,                                                            \
             FASTEST_BOLD FASTEST_GREEN "[SUCCESS] " FASTEST_RESET fstring      \

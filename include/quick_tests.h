@@ -67,9 +67,6 @@
             else                                                               \
                 _out.exit_status |= FASTEST_ERROR_ASSERT;                      \
             break;                                                             \
-        default:                                                               \
-            _out.exit_status |= FASTEST_ERROR_INTERNAL;                        \
-            break;                                                             \
         }                                                                      \
                                                                                \
         FASTEST_Print_result(&_out);                                           \
