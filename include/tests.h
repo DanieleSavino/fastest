@@ -49,6 +49,8 @@
 // Internal framework errors
 #define FASTEST_ERROR_INTERNAL     0x20000 // Internal Fastest bug or misuse
 #define FASTEST_ERROR_UNKNOWN      0x40000 // Unknown failure (catch-all)
+                                           //
+#define FASTEST_DEFAULT_LOG 0x80000
 
 typedef struct {
     const char *test_name;

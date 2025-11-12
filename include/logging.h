@@ -47,7 +47,7 @@
 #define DEBUG_PRINTF(fstring, ...)                                             \
     fprintf(stderr,                                                            \
             FASTEST_BOLD FASTEST_MAGENTA                        \
-            "[DEBUG] " FASTEST_RESET fstring,                                  \
+            "[DEBUG] " FASTEST_RESET fstring "\n",                                  \
             ##__VA_ARGS__)
 
 #else
