@@ -3,9 +3,14 @@ name: Build Fastest
 on:
   push:
     branches: [ main, develop ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ main, develop ]
   workflow_dispatch:  # allows manual triggering
+
+permissions:
+  contents: write
 
 jobs:
   build:
