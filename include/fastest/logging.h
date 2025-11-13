@@ -6,7 +6,8 @@
 
 #include <stdio.h>
 
-#include "tests.h"
+#include "fastest/tests.h"
+
 #define FASTEST_RESET "\033[0m"
 
 #define FASTEST_BOLD "\033[1m"
