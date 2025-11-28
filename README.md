@@ -1,10 +1,10 @@
 # FASTEST Testing Framework
 
-A lightweight, macro-based C testing framework designed for simplicity, flexibility, and performance. FASTEST provides multiple testing modes to suit different use cases, from quick function tests to complex custom test scenarios.
+A lightweight, macro-based C testing framework designed for simplicity, flexibility, and performance. FASTEST provides multiple testing modes to suit different use cases, from quick expression tests to complex custom test scenarios.
 
 ## Features
 
-- **4 Testing Modes**: Quick tests, custom tests, inline tests, and double-inline tests
+- **5 Testing Modes**: Quick tests, quick delegate tests, custom tests, inline tests, and double-inline tests
 - **Flexible Assertions**: Support for EQ, NEQ, GT, GE, LT, LE comparisons
 - **Built-in Timing**: Measure test execution time in seconds, milliseconds, microseconds, or nanoseconds
 - **Memory Tracking**: Track allocations and deallocations (Memory profiler coming soon)
@@ -31,7 +31,7 @@ fastest/
 │   └── fastest/
 │       ├── tests.h           # Core data structures and flags
 │       ├── logging.h         # Output formatting and colors
-│       ├── quick_tests.h     # FASTEST_QUICKTEST macro
+│       ├── quick_tests.h     # FASTEST_QUICKTEST macros
 │       └── custom_tests.h    # FASTEST_CUSTOMTEST macros
 ├── src/
 │   └── logging.c            # Implementation of logging functions
@@ -106,42 +106,65 @@ int add(int a, int b) {
 }
 
 int main(void) {
-    FASTEST_QUICKTEST("Addition Test", add, 5, 
-                      FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_NS, 
-                      2, 3);
+    // Test a raw expression
+    FASTEST_QUICKTEST("Addition Test", add(2, 3) == 5, 
+                      FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_NS);
     return 0;
 }
 ```
 
 ## Testing Modes
 
-FASTEST provides four distinct testing modes to match your workflow:
+FASTEST provides five distinct testing modes to match your workflow:
 
-### 1. QUICKTEST - Direct Function Testing
+### 1. QUICKTEST - Raw Expression Testing
 
-**Best for**: Simple unit tests of pure functions
+**Best for**: Quick inline expression tests
 
 **Syntax**:
 ```c
-FASTEST_QUICKTEST(name, function, expected_value, flags, arg1, arg2, ...)
+FASTEST_QUICKTEST(name, expression, flags)
 ```
 
 **Example**:
 ```c
-FASTEST_QUICKTEST("Addition", add, 5, 
-                  FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_MS, 
-                  2, 3);
+FASTEST_QUICKTEST("Addition", add(2, 3) == 5, 
+                  FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_MS);
+```
+
+**Characteristics**:
+- Tests any boolean expression directly
+- Most concise syntax for inline tests
+- Automatically evaluates the expression and compares against expected result
+- Runs when called in `main()`
+
+---
+
+### 2. QUICKTEST_DELEGATE - Direct Function Testing
+
+**Best for**: Simple unit tests of pure functions with arguments
+
+**Syntax**:
+```c
+FASTEST_QUICKTEST_DELEGATE(name, function, expected_value, flags, arg1, arg2, ...)
+```
+
+**Example**:
+```c
+FASTEST_QUICKTEST_DELEGATE("Addition", add, 5, 
+                           FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_MS, 
+                           2, 3);
 ```
 
 **Characteristics**:
 - Tests function directly with provided arguments
 - Automatically compares return value against expected result
-- Most concise syntax
+- Good for testing functions with multiple argument combinations
 - Runs when called in `main()`
 
 ---
 
-### 2. CUSTOMTEST - Function-Based Testing
+### 3. CUSTOMTEST - Function-Based Testing
 
 **Best for**: Complex tests requiring multiple assertions or setup/teardown
 
@@ -172,7 +195,7 @@ int main(void) {
 
 ---
 
-### 3. INLINE - Inline Test Body with Callback
+### 4. INLINE - Inline Test Body with Callback
 
 **Best for**: Tests with reusable callback logic
 
@@ -202,7 +225,7 @@ FASTEST_CUSTOMTEST_INLINE("Inline Test", my_callback, {
 
 ---
 
-### 4. DINLINE - Double Inline (Test + Callback)
+### 5. DINLINE - Double Inline (Test + Callback)
 
 **Best for**: Self-contained tests with simple, test-specific callbacks
 
@@ -325,21 +348,49 @@ FASTEST_CUSTOMTEST_DINLINE("Modulo Test", {
 })
 
 int main(void) {
-    // Quick tests (simple function calls)
-    FASTEST_QUICKTEST("Add Positive", add, 8, 
-                      FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_NS, 
-                      5, 3);
+    // Quick tests (raw expressions)
+    FASTEST_QUICKTEST("Add Positive", add(5, 3) == 8, 
+                      FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_NS);
     
-    FASTEST_QUICKTEST("Multiply", multiply, 20, 
-                      FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_US, 
-                      4, 5);
+    FASTEST_QUICKTEST("Multiply", multiply(4, 5) == 20, 
+                      FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_US);
     
-    FASTEST_QUICKTEST("Greater Than", add, 5, 
-                      FASTEST_ASSERT_GT | FASTEST_FAIL_WARNING, 
-                      2, 3);
+    FASTEST_QUICKTEST("Greater Than", add(2, 3) > 4, 
+                      FASTEST_ASSERT_GT | FASTEST_FAIL_WARNING);
+    
+    // Quick delegate test (function with arguments)
+    FASTEST_QUICKTEST_DELEGATE("Add Delegate", add, 10, 
+                               FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_NS, 
+                               7, 3);
     
     // Custom test with callback
     FASTEST_CUSTOMTEST("Division", division_test, test_callback);
+    
+    return 0;
+}
+```
+
+### Choosing Between QUICKTEST and QUICKTEST_DELEGATE
+
+```c
+int add(int a, int b) { return a + b; }
+
+int main(void) {
+    // Use QUICKTEST for inline expressions
+    FASTEST_QUICKTEST("Inline Expression", add(2, 3) == 5, 
+                      FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR);
+    
+    FASTEST_QUICKTEST("Complex Expression", (add(2, 3) * 2) == 10, 
+                      FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR);
+    
+    // Use QUICKTEST_DELEGATE when testing same function with different inputs
+    FASTEST_QUICKTEST_DELEGATE("Add Case 1", add, 5, 
+                               FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR, 
+                               2, 3);
+    
+    FASTEST_QUICKTEST_DELEGATE("Add Case 2", add, 10, 
+                               FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR, 
+                               7, 3);
     
     return 0;
 }
@@ -422,7 +473,8 @@ The workflow can also be triggered manually from the GitHub Actions tab.
 ## Best Practices
 
 1. **Choose the right testing mode**:
-   - Use QUICKTEST for simple function tests
+   - Use QUICKTEST for inline expression tests
+   - Use QUICKTEST_DELEGATE for function tests with varying arguments
    - Use CUSTOMTEST for complex test logic
    - Use INLINE/DINLINE for tests that should run automatically
 
