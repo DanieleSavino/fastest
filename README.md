@@ -1,6 +1,10 @@
 # FASTEST Testing Framework
 
-A lightweight, macro-based C testing framework designed for simplicity, flexibility, and performance. FASTEST provides multiple testing modes to suit different use cases, from quick expression tests to complex custom test scenarios.
+> ⚠️ **This README was generated with AI assistance. Some information may be inaccurate or incomplete. Refer to the source code and headers as the authoritative reference.**
+
+A lightweight, macro-based C testing framework designed for simplicity and low overhead. Originally developed as a personal tool for the "Programmazione di sistemi embedded e multicore" (PEM) course at [La Sapienza University of Rome](https://www.uniroma1.it/).
+
+FASTEST is intended for personal use — it is not a production-grade or widely adopted testing framework. That said, contributions and improvements are welcome if you find it useful.
 
 ## Features
 
@@ -21,6 +25,7 @@ A lightweight, macro-based C testing framework designed for simplicity, flexibil
 - [Flags Reference](#flags-reference)
 - [Examples](#examples)
 - [CI/CD Integration](#cicd-integration)
+- [Contributing](#contributing)
 - [License](#license)
 
 ## Project Structure
@@ -54,7 +59,7 @@ fastest/
 
 1. **Clone the repository**:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/DanieleSavino/fastest
    cd fastest
    ```
 
@@ -106,8 +111,7 @@ int add(int a, int b) {
 }
 
 int main(void) {
-    // Test a raw expression
-    FASTEST_QUICKTEST("Addition Test", add(2, 3) == 5, 
+    FASTEST_QUICKTEST("Addition Test", add(2, 3) == 5,
                       FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_NS);
     return 0;
 }
@@ -128,14 +132,13 @@ FASTEST_QUICKTEST(name, expression, flags)
 
 **Example**:
 ```c
-FASTEST_QUICKTEST("Addition", add(2, 3) == 5, 
+FASTEST_QUICKTEST("Addition", add(2, 3) == 5,
                   FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_MS);
 ```
 
 **Characteristics**:
 - Tests any boolean expression directly
 - Most concise syntax for inline tests
-- Automatically evaluates the expression and compares against expected result
 - Runs when called in `main()`
 
 ---
@@ -151,15 +154,14 @@ FASTEST_QUICKTEST_DELEGATE(name, function, expected_value, flags, arg1, arg2, ..
 
 **Example**:
 ```c
-FASTEST_QUICKTEST_DELEGATE("Addition", add, 5, 
-                           FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_MS, 
+FASTEST_QUICKTEST_DELEGATE("Addition", add, 5,
+                           FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_MS,
                            2, 3);
 ```
 
 **Characteristics**:
-- Tests function directly with provided arguments
+- Tests a function directly with provided arguments
 - Automatically compares return value against expected result
-- Good for testing functions with multiple argument combinations
 - Runs when called in `main()`
 
 ---
@@ -188,9 +190,8 @@ int main(void) {
 ```
 
 **Characteristics**:
-- Test logic in separate function
+- Test logic lives in a separate function
 - Optional callback for post-test processing
-- Good code organization
 - Manual invocation in `main()`
 
 ---
@@ -219,15 +220,14 @@ FASTEST_CUSTOMTEST_INLINE("Inline Test", my_callback, {
 
 **Characteristics**:
 - Test body written inline
-- Separate callback function
-- Auto-runs before `main()` using `__attribute__((constructor))`
-- Good when callback is shared across tests
+- Separate reusable callback
+- Auto-runs before `main()` via `__attribute__((constructor))`
 
 ---
 
 ### 5. DINLINE - Double Inline (Test + Callback)
 
-**Best for**: Self-contained tests with simple, test-specific callbacks
+**Best for**: Fully self-contained tests
 
 **Syntax**:
 ```c
@@ -237,10 +237,8 @@ FASTEST_CUSTOMTEST_DINLINE(name, { callback_body }, { test_body })
 **Example**:
 ```c
 FASTEST_CUSTOMTEST_DINLINE("Double Inline Test", {
-    // Callback body
     DEBUG_PRINTF("%s finished", out->test_name);
 }, {
-    // Test body
     out->test_flags |= FASTEST_ASSERT_EQ;
     out->exit_status |= add(2, 3) == 5 ? FASTEST_SUCCESS : FASTEST_ERROR_ASSERT;
     out->exit_status |= FASTEST_DEFAULT_LOG;
@@ -248,10 +246,8 @@ FASTEST_CUSTOMTEST_DINLINE("Double Inline Test", {
 ```
 
 **Characteristics**:
-- Most compact form
-- Everything defined in one place
-- Auto-runs before `main()` using `__attribute__((constructor))`
-- Ideal for self-contained tests
+- Everything in one place
+- Auto-runs before `main()` via `__attribute__((constructor))`
 
 ## Flags Reference
 
@@ -300,140 +296,32 @@ FASTEST_CUSTOMTEST_DINLINE("Double Inline Test", {
 | `FASTEST_ERROR_EXCEPTION` | Exception/signal occurred |
 | `FASTEST_ERROR_UNEXPECTED` | Unexpected result |
 
-**Combining Flags**: Use bitwise OR (`|`) to combine multiple flags:
+Combine flags with bitwise OR:
 ```c
 FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_MS
 ```
 
-## Examples
+## Output Examples
 
-### Complete Test Suite Example
-
-```c
-#include "fastest/quick_tests.h"
-#include "fastest/custom_tests.h"
-#include "fastest/tests.h"
-
-// Functions to test
-int add(int a, int b) { return a + b; }
-int multiply(int a, int b) { return a * b; }
-
-// Callback for post-test processing
-void test_callback(FASTEST_TestOutput *out) {
-    DEBUG_PRINTF("Test '%s' completed in %luns", out->test_name, out->time_ns);
-}
-
-// Custom test function
-void division_test(FASTEST_TestOutput *out) {
-    out->test_flags |= FASTEST_ASSERT_EQ | FASTEST_TIME_US;
-    int result = 10 / 2;
-    out->exit_status |= result == 5 ? FASTEST_SUCCESS : FASTEST_ERROR_ASSERT;
-    out->exit_status |= FASTEST_DEFAULT_LOG;
-}
-
-// Inline test (runs before main)
-FASTEST_CUSTOMTEST_INLINE("Subtraction Test", test_callback, {
-    out->test_flags |= FASTEST_ASSERT_EQ | FASTEST_TIME_NS;
-    out->exit_status |= (10 - 3 == 7) ? FASTEST_SUCCESS : FASTEST_ERROR_ASSERT;
-    out->exit_status |= FASTEST_DEFAULT_LOG;
-})
-
-// Double inline test (runs before main)
-FASTEST_CUSTOMTEST_DINLINE("Modulo Test", {
-    DEBUG_PRINTF("Test completed");
-}, {
-    out->test_flags |= FASTEST_ASSERT_EQ;
-    out->exit_status |= (10 % 3 == 1) ? FASTEST_SUCCESS : FASTEST_ERROR_ASSERT;
-    out->exit_status |= FASTEST_DEFAULT_LOG;
-})
-
-int main(void) {
-    // Quick tests (raw expressions)
-    FASTEST_QUICKTEST("Add Positive", add(5, 3) == 8, 
-                      FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_NS);
-    
-    FASTEST_QUICKTEST("Multiply", multiply(4, 5) == 20, 
-                      FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_US);
-    
-    FASTEST_QUICKTEST("Greater Than", add(2, 3) > 4, 
-                      FASTEST_ASSERT_GT | FASTEST_FAIL_WARNING);
-    
-    // Quick delegate test (function with arguments)
-    FASTEST_QUICKTEST_DELEGATE("Add Delegate", add, 10, 
-                               FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_NS, 
-                               7, 3);
-    
-    // Custom test with callback
-    FASTEST_CUSTOMTEST("Division", division_test, test_callback);
-    
-    return 0;
-}
+**Successful test**:
+```
+[SUCCESS] Addition Test
+[LOG] Addition Test: [time: 123ns]
 ```
 
-### Choosing Between QUICKTEST and QUICKTEST_DELEGATE
-
-```c
-int add(int a, int b) { return a + b; }
-
-int main(void) {
-    // Use QUICKTEST for inline expressions
-    FASTEST_QUICKTEST("Inline Expression", add(2, 3) == 5, 
-                      FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR);
-    
-    FASTEST_QUICKTEST("Complex Expression", (add(2, 3) * 2) == 10, 
-                      FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR);
-    
-    // Use QUICKTEST_DELEGATE when testing same function with different inputs
-    FASTEST_QUICKTEST_DELEGATE("Add Case 1", add, 5, 
-                               FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR, 
-                               2, 3);
-    
-    FASTEST_QUICKTEST_DELEGATE("Add Case 2", add, 10, 
-                               FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR, 
-                               7, 3);
-    
-    return 0;
-}
+**Failed test**:
+```
+[ERROR] Division Test: ASSERT_EQ failed
 ```
 
-### Memory Tracking Example
-
-> ⚠️ **Note**: The memory profiler is currently under development. Manual tracking is shown below as a placeholder for the upcoming automatic profiling feature.
-
-```c
-#include "fastest/custom_tests.h"
-#include "fastest/tests.h"
-#include <stdlib.h>
-
-void memory_test(FASTEST_TestOutput *out) {
-    out->test_flags |= FASTEST_MEM_TRACK;
-    
-    // Manual memory tracking (automatic profiling coming soon)
-    void *ptr = malloc(100);
-    out->allocation += 100;
-    
-    free(ptr);
-    out->deallocation += 100;
-    
-    out->exit_status |= FASTEST_SUCCESS | FASTEST_DEFAULT_LOG;
-}
-
-int main(void) {
-    FASTEST_CUSTOMTEST("Memory Leak Test", memory_test, NULL);
-    return 0;
-}
+**Memory leak**:
+```
+[ERROR] Memory Test: Memory leaks found: [alloc=100, dealloc=50]
 ```
 
 ## CI/CD Integration
 
-FASTEST includes GitHub Actions workflow for automated building and releasing.
-
-### Workflow Features
-
-- **Automatic builds** on push to `main` or `develop` branches
-- **Pull request validation**
-- **Automated releases** when tags are pushed
-- **Release artifacts** packaged as ZIP files
+FASTEST includes a GitHub Actions workflow for automated building and releasing.
 
 ### Triggering a Release
 
@@ -442,77 +330,30 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-This automatically:
-1. Builds the library
-2. Packages headers and library files
-3. Creates a GitHub Release
-4. Uploads `fastest-v1.0.0.zip` as a release asset
-
-### Manual Workflow Trigger
-
-The workflow can also be triggered manually from the GitHub Actions tab.
-
-## Output Examples
-
-**Successful Test**:
-```
-[SUCCESS] Addition Test
-[LOG] Addition Test: [time: 123ns]
-```
-
-**Failed Test**:
-```
-[ERROR] Division Test: ASSERT_EQ failed
-```
-
-**Memory Leak Detection**:
-```
-[ERROR] Memory Test: Memory leaks found: [alloc=100, dealloc=50]
-```
-
-## Best Practices
-
-1. **Choose the right testing mode**:
-   - Use QUICKTEST for inline expression tests
-   - Use QUICKTEST_DELEGATE for function tests with varying arguments
-   - Use CUSTOMTEST for complex test logic
-   - Use INLINE/DINLINE for tests that should run automatically
-
-2. **Always enable logging**:
-   ```c
-   out->exit_status |= FASTEST_DEFAULT_LOG;
-   ```
-
-3. **Combine timing with tests** to identify performance issues
-
-4. **Use appropriate failure modes**:
-   - `FASTEST_FAIL_ERROR` for critical failures
-   - `FASTEST_FAIL_WARNING` for non-critical issues
-   - `FASTEST_FAIL_LOG` for informational purposes
-
-5. **Enable DEBUG mode** during development for verbose output
+This automatically builds the library, packages headers and the `.a` file, creates a GitHub Release, and uploads the zip as a release asset.
 
 ## Contributing
 
-Contributions are welcome! Please ensure:
-- Code follows existing style conventions
-- All tests pass
-- New features include documentation
+Contributions are welcome. FASTEST was built for personal use during a university course, so the bar for changes is pragmatic rather than strict — if it's useful and doesn't break existing behavior, it's probably fine.
+
+A few guidelines:
+- Keep it dependency-free and C11 compatible
+- Don't break the existing macro API
+- If adding a new testing mode or flag, add a usage example
+
+Open an issue or PR on [GitHub](https://github.com/DanieleSavino/fastest).
 
 ## Roadmap
 
-### Upcoming Features
-
-- **Memory Profiler**: Automatic memory allocation/deallocation tracking and leak detection (Coming Soon)
+- **Memory Profiler**: Automatic leak detection (in development)
 - Additional assertion types
 - JSON test result export
-- Test suite organization and filtering
 
 ## License
 
 MIT License
 
-Copyright (c) 2025 [Your Name/Organization]
+Copyright (c) 2025 Daniele Savino
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -531,7 +372,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-## Support
-
-For issues, questions, or contributions, please [open an issue](link-to-issues) on GitHub.
