@@ -79,7 +79,7 @@
                        (end.tv_nsec - start.tv_nsec);                             \
     }                                                                             \
                                                                                   \
-    /* Assertions based only on boolean truth (faster, like you wanted) */        \
+    /* Assertions based only on boolean truth */                                  \
     switch (FASTEST_Get_assert_mode(flags)) {                                     \
         case FASTEST_ASSERT_EQ:                                                   \
         case FASTEST_ASSERT_NEQ:                                                  \
@@ -89,6 +89,8 @@
         case FASTEST_ASSERT_LE:                                                   \
             if (!result)                                                          \
                 _out.exit_status |= FASTEST_ERROR_ASSERT;                         \
+            else                                                                  \
+                _out.exit_status |= FASTEST_SUCCESS;                              \
     }                                                                             \
                                                                                   \
     _out.exit_status |= FASTEST_DEFAULT_LOG;                                      \
