@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <time.h>
 
 // Quick api flags
 
@@ -76,3 +77,36 @@ static inline uint64_t FASTEST_Get_assert_mode(uint64_t flags) {
         return FASTEST_ASSERT_LE;
     return 0; // no assertion
 }
+
+static inline uint64_t FASTEST_testcpy(const FASTEST_TestOutput *test, FASTEST_TestOutput *out) {
+    if(test == NULL || out == NULL) {
+        return FASTEST_ERROR_INTERNAL;
+    }
+
+    out->test_name = test->test_name;
+    out->test_flags = test->test_flags;
+    out->exit_status = test->exit_status;
+    out->allocation = test->allocation;
+    out->deallocation = test->deallocation;
+    out->time_ns = test->time_ns;
+
+    return FASTEST_SUCCESS;
+}
+
+#define FASTEST_MALLOC(ptr, size, err_ref, label) \
+do { \
+    (ptr) = malloc(size); \
+    if(!(ptr)) { \
+        *err_ref = FASTEST_ERROR_MEMORY; \
+        goto label; \
+    } \
+} while(0)
+
+#define FASTEST_CHECK(call, err_ref, label) \
+do { \
+    *err_ref = (call); \
+    if( ! (*err_ref & FASTEST_SUCCESS)) { \
+        fprintf(stderr, "[FASTEST INTERNAL ERROR] %s failed. In file: %s on line: %d\n", #call, __FILE__, __LINE__); \
+        goto label; \
+    } \
+} while(0)
