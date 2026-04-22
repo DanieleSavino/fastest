@@ -78,6 +78,19 @@ static inline uint64_t FASTEST_Get_assert_mode(uint64_t flags) {
     return 0; // no assertion
 }
 
+static inline uint64_t FASTEST_Get_time_mode(uint64_t flags) {
+    if (flags & FASTEST_TIME_NS)
+        return FASTEST_TIME_NS;
+    if (flags & FASTEST_TIME_MS)
+        return FASTEST_TIME_MS;
+    if (flags & FASTEST_TIME_US)
+        return FASTEST_TIME_US;
+    if (flags & FASTEST_TIME_S)
+        return FASTEST_TIME_S;
+    return 0; // no time
+
+}
+
 static inline uint64_t FASTEST_testcpy(const FASTEST_TestOutput *test, FASTEST_TestOutput *out) {
     if(test == NULL || out == NULL) {
         return FASTEST_ERROR_INTERNAL;

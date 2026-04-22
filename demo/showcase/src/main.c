@@ -1,6 +1,7 @@
 #include "fastest/quick_tests.h"
 #include "fastest/custom_tests.h"
 #include "fastest/tests.h"
+#include <stdio.h>
 
 // Simple function to test
 int add(int a, int b) {
@@ -53,6 +54,15 @@ void test(FASTEST_TestOutput *out) {
     out->exit_status |= FASTEST_DEFAULT_LOG;
 }
 
+/*
+* MODE 2: CUSTOM TEST MODE (FASTEST_CUSTOMTEST)
+* - Uses a separate test function that you define
+* - Provides more control over test logic and assertions
+* - Optional callback parameter for post-test processing (NULL here)
+* - Good for complex tests that need multiple assertions or setup/teardown
+*/
+FASTEST_CUSTOMTEST("custom", test, NULL);
+
 int main(void)
 {
     /*
@@ -62,16 +72,17 @@ int main(void)
      * - Syntax: FASTEST_QUICKTEST(name, function, expected_value, flags, arg1, arg2, ...)
      * - Best for simple unit tests of pure functions
      */
-    FASTEST_QUICKTEST("Addition", add, 6, (FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_NS), 2, 3);
+    FASTEST_QUICKTEST_DELEGATE("Addition", add, 6, (FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_NS), 2, 3);
 
-    /*
-     * MODE 2: CUSTOM TEST MODE (FASTEST_CUSTOMTEST)
-     * - Uses a separate test function that you define
-     * - Provides more control over test logic and assertions
-     * - Optional callback parameter for post-test processing (NULL here)
-     * - Good for complex tests that need multiple assertions or setup/teardown
-     */
-    FASTEST_CUSTOMTEST("custom", test, NULL);
+    FASTEST_QUICKTEST("Addition", add(2, 3) == 6, (FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_NS));
+
+    FASTEST_list_t *list;
+    FASTEST_list_getInstance(&list);
+    FASTEST_list_exec(list, 0);
+    FASTEST_list_exec(list, 1);
+    FASTEST_list_exec(list, 2);
+    // FASTEST_list_pprint(list);
+
 
     return 0;
 }

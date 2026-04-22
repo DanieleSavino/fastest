@@ -1,4 +1,5 @@
 #include "fastest/test_list.h"
+#include "fastest/logging.h"
 #include "fastest/tests.h"
 #include <stddef.h>
 #include <stdint.h>
@@ -13,7 +14,7 @@ uint64_t FASTEST_list_init(FASTEST_list_t **list, size_t init_size) {
     FASTEST_list_t *der_list = NULL;
     FASTEST_MALLOC(der_list, sizeof(FASTEST_list_t), &err, cleanup);
 
-    FASTEST_MALLOC(der_list->_buffer, init_size * sizeof(FASTEST_TestOutput), &err, cleanup);
+    FASTEST_MALLOC(der_list->_buffer, init_size * sizeof(FASTEST_SchedTest), &err, cleanup);
 
     der_list->_buff_size = init_size;
     der_list->len = 0;
@@ -30,6 +31,8 @@ void schedcpy(const FASTEST_SchedTest *test, FASTEST_SchedTest *out) {
     out->test_name = test->test_name;
     out->func = test->func;
     out->out = test->out;
+    out->callback = test->callback;
+    out->status = test->status;
 }
 
 uint64_t FASTEST_list_push(FASTEST_list_t * const list, const FASTEST_SchedTest *test) {
@@ -37,7 +40,7 @@ uint64_t FASTEST_list_push(FASTEST_list_t * const list, const FASTEST_SchedTest 
     size_t list_len = list->len;
 
     if(list_len >= buff_size) {
-        void *tmp = realloc(list->_buffer, list->_buff_size * 2 * sizeof(FASTEST_TestOutput));
+        void *tmp = realloc(list->_buffer, list->_buff_size * 2 * sizeof(FASTEST_SchedTest));
         if(!tmp) {
             return FASTEST_ERROR_MEMORY;
         }
@@ -46,6 +49,7 @@ uint64_t FASTEST_list_push(FASTEST_list_t * const list, const FASTEST_SchedTest 
     }
 
     schedcpy(test, &list->_buffer[list_len]);
+    list->_buffer[list_len].status = FASTEST_STATUS_PENDING;
     list->len++;
 
     return FASTEST_SUCCESS;
@@ -71,6 +75,39 @@ uint64_t FASTEST_list_free(FASTEST_list_t * const list) {
     free(list);
 
     return FASTEST_SUCCESS;
+}
+
+uint64_t FASTEST_list_exec(const FASTEST_list_t *list, size_t idx) {
+    if(list == NULL || idx >= list->len) {
+        return FASTEST_ERROR_INTERNAL;
+    }
+
+    uint64_t err = FASTEST_SUCCESS;
+
+    FASTEST_SchedTest *test;
+    FASTEST_CHECK(FASTEST_list_get(list, idx, &test), &err, cleanup);
+
+    test->out.test_name = test->test_name;
+    test->status = FASTEST_STATUS_RUNNING;
+
+    struct timespec start, end;
+    timespec_get(&start, TIME_UTC);
+    test->func(&test->out);
+    timespec_get(&end, TIME_UTC);
+
+    test->status = FASTEST_STATUS_EXECUTED;
+
+    if (FASTEST_Get_time_mode(test->out.test_flags))
+        test->out.time_ns = (uint64_t)(end.tv_sec - start.tv_sec) * 1000000000ULL +
+                            (end.tv_nsec - start.tv_nsec);
+
+    FASTEST_Print_result(&test->out);
+
+    if(test->callback != NULL)
+        test->callback(&test->out);
+
+cleanup:
+    return err;
 }
 
 uint64_t FASTEST_list_getInstance(FASTEST_list_t **list) {
@@ -99,8 +136,7 @@ uint64_t FASTEST_sched_pprint(const FASTEST_SchedTest *test) {
     if (test == NULL)
         return FASTEST_ERROR_INTERNAL;
 
-    const char *status = test->out.time_ns != 0 ? "done" : "pending";
-    fprintf(stdout, "  [%s] %s\n", status, test->test_name);
+    fprintf(stdout, "  [%s] %s\n", FASTEST_strstatus(test->status), test->test_name);
     return FASTEST_SUCCESS;
 }
 
