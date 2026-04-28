@@ -44,6 +44,8 @@ static inline const char *FASTEST_ErrorToString(uint64_t exit_status,
         return "Internal framework error";
     if (exit_status & FASTEST_ERROR_UNKNOWN)
         return "Unknown error";
+    if(exit_status & FASTEST_ERROR_COLLISION)
+        return "Collision in test names";
 
     return "Unknown status";
 }

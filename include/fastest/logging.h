@@ -23,24 +23,24 @@
 
 #define SUCCESS_PRINTF(fstring, ...)                                           \
     fprintf(stdout,                                                            \
-            FASTEST_BOLD FASTEST_GREEN "[SUCCESS] " FASTEST_RESET fstring      \
+            FASTEST_BOLD FASTEST_GREEN "[FASTEST SUCCESS] " FASTEST_RESET fstring      \
                                        "\n",                                   \
             ##__VA_ARGS__)
 
 #define WARNING_PRINTF(fstring, ...)                                           \
     fprintf(stderr,                                                            \
-            FASTEST_BOLD FASTEST_YELLOW "[WARNING] " FASTEST_RESET fstring     \
+            FASTEST_BOLD FASTEST_YELLOW "[FASTEST WARNING] " FASTEST_RESET fstring     \
                                         "\n",                                  \
             ##__VA_ARGS__)
 
 #define LOG_PRINTF(fstring, ...)                                               \
     fprintf(stderr,                                                            \
-            FASTEST_BOLD FASTEST_BLUE "[LOG] " FASTEST_RESET fstring "\n",     \
+            FASTEST_BOLD FASTEST_BLUE "[FASTEST LOG] " FASTEST_RESET fstring "\n",     \
             ##__VA_ARGS__)
 
 #define ERROR_PRINTF(fstring, ...)                                             \
     fprintf(stderr,                                                            \
-            FASTEST_BOLD FASTEST_RED "[ERROR] " FASTEST_RESET fstring "\n",    \
+            FASTEST_BOLD FASTEST_RED "[FASTEST ERROR] " FASTEST_RESET fstring "\n",    \
             ##__VA_ARGS__)
 
 #ifdef DEBUG
@@ -48,7 +48,7 @@
 #define DEBUG_PRINTF(fstring, ...)                                             \
     fprintf(stderr,                                                            \
             FASTEST_BOLD FASTEST_MAGENTA                        \
-            "[DEBUG] " FASTEST_RESET fstring "\n",                                  \
+            "[FASTEST DEBUG] " FASTEST_RESET fstring "\n",                                  \
             ##__VA_ARGS__)
 
 #else

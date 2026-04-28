@@ -35,9 +35,28 @@ void schedcpy(const FASTEST_SchedTest *test, FASTEST_SchedTest *out) {
     out->status = test->status;
 }
 
+static inline int check_key(FASTEST_list_t * const list, const FASTEST_SchedTest *test) {
+    FASTEST_SchedTest *cmp_test;
+
+    for(int i = 0; i < list->len; i++) {
+        // WARN: Ignoring the out of bounds error, should not happen.
+        FASTEST_list_get(list, i, &cmp_test);
+        if(strcmp(cmp_test->test_name, test->test_name) == 0) {
+            ERROR_PRINTF("Test: %s defined twice\n", test->test_name);
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 uint64_t FASTEST_list_push(FASTEST_list_t * const list, const FASTEST_SchedTest *test) {
     size_t buff_size = list->_buff_size;
     size_t list_len = list->len;
+
+    if(check_key(list, test)) {
+        return FASTEST_ERROR_COLLISION;
+    }
 
     if(list_len >= buff_size) {
         void *tmp = realloc(list->_buffer, list->_buff_size * 2 * sizeof(FASTEST_SchedTest));
