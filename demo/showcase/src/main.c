@@ -1,6 +1,7 @@
 #include "fastest/custom_tests.h"
 #include "fastest/quick_tests.h"
 #include "fastest/tests.h"
+#include <stdio.h>
 
 // Simple function to test
 int add(int a, int b) { return a + b; }
@@ -20,11 +21,14 @@ void inline_callback(FASTEST_TestOutput *out) {
  * - Useful for tests that need post-execution processing with a separate
  * callback function
  */
-FASTEST_CUSTOMTEST_INLINE("inline", inline_callback, {
-  out->test_flags |= FASTEST_ASSERT_EQ;
-  out->exit_status |= add(2, 3) == 5 ? FASTEST_SUCCESS : FASTEST_ERROR_ASSERT;
-  out->exit_status |= FASTEST_DEFAULT_LOG;
-})
+FASTEST_CUSTOMTEST_INLINE("inline", FASTEST_TIME_NS | FASTEST_FAIL_ERROR,
+    inline_callback,
+    {
+        out->test_flags |= FASTEST_ASSERT_EQ;
+        out->exit_status |= add(2, 3) == 5 ? FASTEST_SUCCESS : FASTEST_ERROR_ASSERT;
+        out->exit_status |= FASTEST_DEFAULT_LOG;
+    }
+)
 
 /*
  * MODE 5: DOUBLE INLINE MODE (FASTEST_CUSTOMTEST_DINLINE)
@@ -34,20 +38,17 @@ FASTEST_CUSTOMTEST_INLINE("inline", inline_callback, {
  * - Ideal for self-contained tests where callback logic is simple and specific
  * to this test
  */
-FASTEST_CUSTOMTEST_DINLINE(
-    "Dinline",
+FASTEST_CUSTOMTEST_DINLINE("Dinline", FASTEST_TIME_NS | FASTEST_FAIL_ERROR | FASTEST_DEFAULT_LOG,
     {
-      // Callback body - runs after test and timing
-      DEBUG_PRINTF("%s executed mem err: %d", out->test_name,
-                   (out->exit_status & FASTEST_ERROR_ASSERT) > 0L);
-    },
-    {
-      // Test body - runs with timing
-      out->test_flags |= FASTEST_ASSERT_EQ;
-      out->exit_status |=
-          add(2, 3) == 5 ? FASTEST_SUCCESS : FASTEST_ERROR_ASSERT;
-      out->exit_status |= FASTEST_DEFAULT_LOG;
-    })
+        // Callback body - runs after test and timing
+        DEBUG_PRINTF("%s executed mem err: %d", out->test_name, (out->exit_status & FASTEST_ERROR_ASSERT) > 0L);
+    }, {
+        // Test body - runs with timing
+        out->test_flags |= FASTEST_ASSERT_EQ;
+        out->exit_status |= add(2, 3) == 5 ? FASTEST_SUCCESS : FASTEST_ERROR_ASSERT;
+        out->exit_status |= FASTEST_DEFAULT_LOG;
+    }
+)
 
 /*
  * Test function for custom mode
@@ -63,34 +64,27 @@ void test(FASTEST_TestOutput *out) {
   out->exit_status |= FASTEST_DEFAULT_LOG;
 }
 
-int main(void) {
-  /*
-   * MODE 1: QUICKTEST DELEGATE MODE (FASTEST_QUICKTEST_DELEGATE)
-   * - Direct function call with arguments
-   * - Evaluates return value against expected
-   * - Supports timing
-   */
-  FASTEST_QUICKTEST_DELEGATE(
-      "Addition", add, 6,
-      (FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_NS), 2, 3);
+/*
+* MODE 2: CUSTOM TEST MODE (FASTEST_CUSTOMTEST)
+* - Uses a separate test function that you define
+* - Provides more control over test logic and assertions
+* - Optional callback parameter for post-test processing (NULL here)
+* - Good for complex tests that need multiple assertions or setup/teardown
+*/
+FASTEST_CUSTOMTEST("custom test", FASTEST_TIME_NS | FASTEST_FAIL_ERROR, test, NULL);
 
-  /*
-   * MODE 2: QUICKTEST (RAW EXPRESSION)
-   * - Evaluates a boolean expression directly
-   * - Measures execution time
-   * - Simplest for inline expressions
-   */
-  FASTEST_QUICKTEST("Addition", add(2, 3) == 6,
-                    (FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_NS));
+int main(void)
+{
+    /*
+     * MODE 1: QUICK TEST MODE (FASTEST_QUICKTEST)
+     * - Simplest form - tests a function directly with arguments
+     * - Automatically compares return value against expected result
+     * - Syntax: FASTEST_QUICKTEST(name, function, expected_value, flags, arg1, arg2, ...)
+     * - Best for simple unit tests of pure functions
+     */
+    FASTEST_QUICKTEST("Addition", add(2, 3) == 6, (FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_NS));
 
-  /*
-   * MODE 3: CUSTOM TEST MODE (FASTEST_CUSTOMTEST)
-   */
-  FASTEST_CUSTOMTEST("custom", test, NULL);
 
-  /*
-   * MODE 4 and 5 (INLINE and DOUBLE INLINE) auto-run via constructor
-   */
 
   return 0;
 }

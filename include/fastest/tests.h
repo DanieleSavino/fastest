@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <time.h>
 
 // Quick api flags
 
@@ -49,8 +50,12 @@
 // Internal framework errors
 #define FASTEST_ERROR_INTERNAL     0x20000 // Internal Fastest bug or misuse
 #define FASTEST_ERROR_UNKNOWN      0x40000 // Unknown failure (catch-all)
-                                           //
-#define FASTEST_DEFAULT_LOG 0x80000
+
+// List errors
+#define FASTEST_ERROR_COLLISION    0x80000 // Test name collision
+#define FASTEST_ERROR_NOT_FOUND    0x100000 // Test name collision
+
+#define FASTEST_DEFAULT_LOG 0x200000
 
 typedef struct {
     const char *test_name;
@@ -76,3 +81,49 @@ static inline uint64_t FASTEST_Get_assert_mode(uint64_t flags) {
         return FASTEST_ASSERT_LE;
     return 0; // no assertion
 }
+
+static inline uint64_t FASTEST_Get_time_mode(uint64_t flags) {
+    if (flags & FASTEST_TIME_NS)
+        return FASTEST_TIME_NS;
+    if (flags & FASTEST_TIME_MS)
+        return FASTEST_TIME_MS;
+    if (flags & FASTEST_TIME_US)
+        return FASTEST_TIME_US;
+    if (flags & FASTEST_TIME_S)
+        return FASTEST_TIME_S;
+    return 0; // no time
+
+}
+
+static inline uint64_t FASTEST_testcpy(const FASTEST_TestOutput *test, FASTEST_TestOutput *out) {
+    if(test == NULL || out == NULL) {
+        return FASTEST_ERROR_INTERNAL;
+    }
+
+    out->test_name = test->test_name;
+    out->test_flags = test->test_flags;
+    out->exit_status = test->exit_status;
+    out->allocation = test->allocation;
+    out->deallocation = test->deallocation;
+    out->time_ns = test->time_ns;
+
+    return FASTEST_SUCCESS;
+}
+
+#define FASTEST_MALLOC(ptr, size, err_ref, label) \
+do { \
+    (ptr) = malloc(size); \
+    if(!(ptr)) { \
+        *err_ref = FASTEST_ERROR_MEMORY; \
+        goto label; \
+    } \
+} while(0)
+
+#define FASTEST_CHECK(call, err_ref, label) \
+do { \
+    *err_ref = (call); \
+    if( ! (*err_ref & FASTEST_SUCCESS)) { \
+        fprintf(stderr, "[FASTEST INTERNAL ERROR] %s failed. In file: %s on line: %d\n", #call, __FILE__, __LINE__); \
+        goto label; \
+    } \
+} while(0)
