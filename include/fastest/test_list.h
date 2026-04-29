@@ -45,10 +45,12 @@ typedef struct {
 uint64_t FASTEST_list_init(FASTEST_list_t **list, size_t init_size);
 uint64_t FASTEST_list_push(FASTEST_list_t * const list, const FASTEST_SchedTest *test);
 uint64_t FASTEST_list_get(const FASTEST_list_t *const list, size_t idx, FASTEST_SchedTest **out);
+uint64_t FASTEST_list_get_name(const FASTEST_list_t *const list, const char *name, FASTEST_SchedTest **out);
 uint64_t FASTEST_list_pop(FASTEST_list_t * const list, FASTEST_SchedTest **out);
 uint64_t FASTEST_list_free(FASTEST_list_t * const list);
 
 uint64_t FASTEST_list_exec(const FASTEST_list_t *list, size_t idx);
+uint64_t FASTEST_list_exec_name(const FASTEST_list_t *list, const char* name);
 
 uint64_t FASTEST_list_getInstance(FASTEST_list_t **list);
 

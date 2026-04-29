@@ -38,7 +38,7 @@ void schedcpy(const FASTEST_SchedTest *test, FASTEST_SchedTest *out) {
 static inline int check_key(FASTEST_list_t * const list, const FASTEST_SchedTest *test) {
     FASTEST_SchedTest *cmp_test;
 
-    for(int i = 0; i < list->len; i++) {
+    for(size_t i = 0; i < list->len; i++) {
         // WARN: Ignoring the out of bounds error, should not happen.
         FASTEST_list_get(list, i, &cmp_test);
         if(strcmp(cmp_test->test_name, test->test_name) == 0) {
@@ -86,6 +86,21 @@ uint64_t FASTEST_list_get(const FASTEST_list_t *const list, size_t idx, FASTEST_
     return FASTEST_SUCCESS;
 }
 
+uint64_t FASTEST_list_get_name(const FASTEST_list_t *const list, const char *name, FASTEST_SchedTest **out) {
+    FASTEST_SchedTest *test;
+
+    for(size_t i = 0; i < list->len; i++) {
+        FASTEST_list_get(list, i, &test);
+
+        if(strcmp(test->test_name, name) == 0) {
+            *out = test;
+            return FASTEST_SUCCESS;
+        }
+    }
+
+    return FASTEST_ERROR_NOT_FOUND;
+}
+
 uint64_t FASTEST_list_free(FASTEST_list_t * const list) {
     if(list == NULL)
         return FASTEST_ERROR_INTERNAL;
@@ -127,6 +142,25 @@ uint64_t FASTEST_list_exec(const FASTEST_list_t *list, size_t idx) {
 
 cleanup:
     return err;
+}
+
+uint64_t FASTEST_list_exec_name(const FASTEST_list_t *list, const char* name) {
+    FASTEST_SchedTest *test;
+    size_t idx = SIZE_MAX;
+
+    for(size_t i = 0; i < list->len; i++) {
+        FASTEST_list_get(list, i, &test);
+
+        if(strcmp(test->test_name, name) == 0) {
+            idx = i;
+        }
+    }
+
+    if(idx == SIZE_MAX) {
+        return FASTEST_ERROR_NOT_FOUND;
+    }
+
+    return FASTEST_list_exec(list, idx);
 }
 
 uint64_t FASTEST_list_getInstance(FASTEST_list_t **list) {

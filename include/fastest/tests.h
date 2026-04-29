@@ -53,8 +53,9 @@
 
 // List errors
 #define FASTEST_ERROR_COLLISION    0x80000 // Test name collision
+#define FASTEST_ERROR_NOT_FOUND    0x100000 // Test name collision
 
-#define FASTEST_DEFAULT_LOG 0x100000
+#define FASTEST_DEFAULT_LOG 0x200000
 
 typedef struct {
     const char *test_name;

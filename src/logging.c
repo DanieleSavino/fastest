@@ -50,6 +50,10 @@ static inline const char *FASTEST_ErrorToString(uint64_t exit_status,
     return "Unknown status";
 }
 
+void FASTEST_PrintError(uint64_t exit_status) {
+    ERROR_PRINTF("%s", FASTEST_ErrorToString(exit_status, 0xFFFFFFFF));
+}
+
 void FASTEST_Print_result(const FASTEST_TestOutput *out) {
     if (!out || !(out->exit_status & FASTEST_DEFAULT_LOG))
         return;

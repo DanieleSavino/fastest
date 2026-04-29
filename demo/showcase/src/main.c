@@ -76,12 +76,6 @@ int main(void)
 
     FASTEST_QUICKTEST("Addition", add(2, 3) == 6, (FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_NS));
 
-    FASTEST_list_t *list;
-    FASTEST_list_getInstance(&list);
-    FASTEST_list_exec(list, 0);
-    FASTEST_list_exec(list, 1);
-    FASTEST_list_exec(list, 2);
-    // FASTEST_list_pprint(list);
 
 
     return 0;

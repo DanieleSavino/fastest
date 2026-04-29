@@ -57,4 +57,7 @@
 
 #endif // DEBUG
 
+
+void FASTEST_PrintError(uint64_t exit_status);
+
 void FASTEST_Print_result(const FASTEST_TestOutput *out);
