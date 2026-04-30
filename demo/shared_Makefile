@@ -1,6 +1,8 @@
+
 # ==============================
 #  Shared Makefile for Demos
 # ==============================
+
 BUILD ?= release
 CC    := gcc
 
