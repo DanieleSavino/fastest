@@ -7,7 +7,7 @@ FASTEST_HOME="$(realpath vendor/fastest)"
 
 name=$(basename "$PWD")
 
-pushd "$FASTEST_HOME/python" || exit 1
+pushd "$FASTEST_HOME/bindings" || exit 1
 
 pip install -r requirements.txt
 
