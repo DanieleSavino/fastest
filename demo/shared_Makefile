@@ -1,32 +1,21 @@
+
 # ==============================
 #  Shared Makefile for Demos
 # ==============================
 
-# 1. Initialize Variables First
 BUILD ?= release
 CC    := gcc
-CXX   := g++
 
-# 2. Paths
-SRC_DIR       := src
-OBJ_DIR       := obj/$(BUILD)
-BUILD_DIR     := build/$(BUILD)
+SRC_DIR   := src
+OBJ_DIR   := obj/$(BUILD)
+BUILD_DIR := build/$(BUILD)
 
-# VENDOR PATHS (Symlinked in demo folder)
-VENDOR_DIR    := vendor
-BINDINGS_DIR  := $(VENDOR_DIR)/bindings
-FASTEST_LIB   := $(VENDOR_DIR)/fastest/libfastest.a
+DEMO_NAME := $(notdir $(CURDIR))
+LIB       := lib$(DEMO_NAME)
+LIB_PATH  := $(BUILD_DIR)/$(LIB).a
 
-# Output name must match 'import fastest'
-BIN           := fastest
-BIN_PATH      := $(BUILD_DIR)/$(BIN)
-SO_PATH       := $(BUILD_DIR)/$(BIN).so
-
-# 3. Flags & Includes
-PYTHON_INCLUDES := $(shell python3 -m pybind11 --includes)
-CFLAGS          := -Wall -Wextra -I$(VENDOR_DIR)/include -I$(BINDINGS_DIR)
-CFLAGS_SHARED   := $(CFLAGS) -fPIC
-LDFLAGS         := $(FASTEST_LIB)
+FASTEST_HOME ?= vendor/fastest
+CFLAGS := -Wall -Wextra -fPIC -I$(FASTEST_HOME)/include
 
 ifeq ($(BUILD),debug)
     CFLAGS += -g -O0 -DDEBUG
@@ -34,57 +23,25 @@ else
     CFLAGS += -O2 -DNDEBUG
 endif
 
-# 4. Source & Object Mapping
-SRC           := $(wildcard $(SRC_DIR)/*.c)
-# Looking for the .cpp file through the vendor/bindings symlink
-SRC_CXX       := $(wildcard $(BINDINGS_DIR)/*.cpp)
+SRC := $(wildcard $(SRC_DIR)/*.c)
+OBJ := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRC))
 
-OBJ           := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRC))
-OBJ_SHARED    := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.pic.o, $(SRC))
-# Maps vendor/bindings/pybind.cpp -> obj/release/pybind.pic.o
-OBJ_CXX_SHARED := $(patsubst $(BINDINGS_DIR)/%.cpp, $(OBJ_DIR)/%.pic.o, $(SRC_CXX))
+.PHONY: all clean print
 
-# ── Rules ─────────────────────────────────────────────────────────────────────
+all: $(LIB_PATH)
 
-.PHONY: all shared clean print
-
-all: $(BIN_PATH)
-
-shared: $(SO_PATH)
-
-# Link Binary
-$(BIN_PATH): $(OBJ)
+$(LIB_PATH): $(OBJ)
 	@mkdir -p $(BUILD_DIR)
-	$(CC) $(OBJ) $(LDFLAGS) -o $@
+	ar rcs $@ $^
 
-# Link Shared Library
-$(SO_PATH): $(OBJ_SHARED) $(OBJ_CXX_SHARED)
-	@mkdir -p $(BUILD_DIR)
-	$(CXX) -shared -fPIC $^ $(LDFLAGS) $(PYTHON_INCLUDES) -o $@
-
-# Pattern Rule: C -> Object
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
-
-# Pattern Rule: C -> PIC Object
-$(OBJ_DIR)/%.pic.o: $(SRC_DIR)/%.c
-	@mkdir -p $(OBJ_DIR)
-	$(CC) $(CFLAGS_SHARED) -c $< -o $@
-
-# Pattern Rule: C++ (from vendor/bindings) -> PIC Object
-$(OBJ_DIR)/%.pic.o: $(BINDINGS_DIR)/%.cpp
-	@mkdir -p $(OBJ_DIR)
-	$(CXX) $(CFLAGS_SHARED) $(PYTHON_INCLUDES) -c $< -o $@
-
-# ── Utils ─────────────────────────────────────────────────────────────────────
 
 clean:
 	rm -rf obj build
 
 print:
-	@echo "BIN:        $(BIN_PATH)"
-	@echo "SO:         $(SO_PATH)"
-	@echo "SRC_CXX:    $(SRC_CXX)"
-	@echo "OBJ_CXX:    $(OBJ_CXX_SHARED)"
-	@echo "LDFLAGS:    $(LDFLAGS)"
+	@echo "LIB:  $(LIB_PATH)"
+	@echo "SRC:  $(SRC)"
+	@echo "OBJ:  $(OBJ)"

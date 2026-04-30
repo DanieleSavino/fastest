@@ -51,6 +51,7 @@ static std::string sanitize_name(const char *name) {
     std::string s(name);
     std::replace(s.begin(), s.end(), '/', '_');
     std::replace(s.begin(), s.end(), '-', '_');
+    std::replace(s.begin(), s.end(), ' ', '_');
     return s;
 }
 
