@@ -1,5 +1,11 @@
-import fastest
+#!/usr/bin/env python3
 
-print(fastest.get_test("Dinline"))
-fastest.run_test("Dinline")
-print(fastest.get_test("Dinline"))
+import showcase as t
+
+target = t.tests.custom_test
+
+print(t.get_tests())
+
+t.run_test(target)
+
+print(t.get_test(target))

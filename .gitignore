@@ -1,6 +1,54 @@
-test
+# =========================
+# Build artifacts (C/C++)
+# =========================
 *.o
+*.a
+*.so
+*.dylib
+*.dll
+
 build/
 obj/
+cmake-build-*/
 compile_commands.json
+
+# =========================
+# Python artifacts
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# compiled extensions (your case)
+*.cpython-*
+*.abi3.so
+
+# setuptools / packaging
+*.egg-info/
+dist/
+wheels/
+*.egg
+
+# generated stubs
+*.pyi
+
+# =========================
+# caches / tools
+# =========================
 .cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# =========================
+# IDEs
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# project-specific
+# =========================
+test
+tests/
