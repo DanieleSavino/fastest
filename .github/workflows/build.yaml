@@ -1,5 +1,4 @@
 name: Build Fastest
-
 on:
   push:
     branches: [ main, develop ]
@@ -7,31 +6,24 @@ on:
       - 'v*'
   pull_request:
     branches: [ main, develop ]
-  workflow_dispatch:  # allows manual triggering
-
+  workflow_dispatch:
 permissions:
   contents: write
-
 jobs:
   build:
     name: Build Static Library
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential
-
+        run: sudo apt-get update && sudo apt-get install -y build-essential cmake
       - name: Build library
-        run: make
-
+        run: |
+          cmake -B build
+          cmake --build build
       - name: Show output files
         run: ls -R build || echo "No build output found"
-
-      - name: Clean build
-        run: make clean
 
   release:
     name: Release Build
@@ -40,26 +32,23 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential zip
-
+        run: sudo apt-get update && sudo apt-get install -y build-essential cmake zip
       - name: Build library
-        run: make
-
+        run: |
+          cmake -B build
+          cmake --build build
       - name: Package release files
         run: |
           mkdir -p release/include release/lib
           cp -r include/* release/include/
-          cp build/fastest.a release/lib/
+          cp build/libfastest.a release/lib/
           zip -r fastest-${{ github.ref_name }}.zip release
-
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
           name: fastest-${{ github.ref_name }}
           path: fastest-${{ github.ref_name }}.zip
-
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:

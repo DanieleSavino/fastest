@@ -135,7 +135,8 @@ uint64_t FASTEST_list_exec(const FASTEST_list_t *list, size_t idx) {
         test->out.time_ns = (uint64_t)(end.tv_sec - start.tv_sec) * 1000000000ULL +
                             (end.tv_nsec - start.tv_nsec);
 
-    FASTEST_Print_result(&test->out);
+    if(test->out.test_flags & FASTEST_DEFAULT_LOG)
+        FASTEST_Print_result(&test->out);
 
     if(test->callback != NULL)
         test->callback(&test->out);

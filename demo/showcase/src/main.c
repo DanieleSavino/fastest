@@ -21,11 +21,14 @@ void inline_callback(FASTEST_TestOutput *out) {
  * - Uses __attribute__((constructor)) to run automatically before main()
  * - Useful for tests that need post-execution processing with a separate callback function
  */
-FASTEST_CUSTOMTEST_INLINE("inline", inline_callback, {
-    out->test_flags |= FASTEST_ASSERT_EQ;
-    out->exit_status |= add(2, 3) == 5 ? FASTEST_SUCCESS : FASTEST_ERROR_ASSERT;
-    out->exit_status |= FASTEST_DEFAULT_LOG;
-})
+FASTEST_CUSTOMTEST_INLINE("inline", FASTEST_TIME_NS | FASTEST_FAIL_ERROR,
+    inline_callback,
+    {
+        out->test_flags |= FASTEST_ASSERT_EQ;
+        out->exit_status |= add(2, 3) == 5 ? FASTEST_SUCCESS : FASTEST_ERROR_ASSERT;
+        out->exit_status |= FASTEST_DEFAULT_LOG;
+    }
+)
 
 /*
  * MODE 4: DOUBLE INLINE MODE (FASTEST_CUSTOMTEST_DINLINE)
@@ -34,15 +37,17 @@ FASTEST_CUSTOMTEST_INLINE("inline", inline_callback, {
  * - Uses __attribute__((constructor)) to run automatically before main()
  * - Ideal for self-contained tests where callback logic is simple and specific to this test
  */
-FASTEST_CUSTOMTEST_DINLINE("Dinline", {
-    // Callback body - runs after test and timing
-    DEBUG_PRINTF("%s executed mem err: %d", out->test_name, (out->exit_status & FASTEST_ERROR_ASSERT) > 0L);
-}, {
-    // Test body - runs with timing
-    out->test_flags |= FASTEST_ASSERT_EQ;
-    out->exit_status |= add(2, 3) == 5 ? FASTEST_SUCCESS : FASTEST_ERROR_ASSERT;
-    out->exit_status |= FASTEST_DEFAULT_LOG;
-})
+FASTEST_CUSTOMTEST_DINLINE("Dinline", FASTEST_TIME_NS | FASTEST_FAIL_ERROR | FASTEST_DEFAULT_LOG,
+    {
+        // Callback body - runs after test and timing
+        DEBUG_PRINTF("%s executed mem err: %d", out->test_name, (out->exit_status & FASTEST_ERROR_ASSERT) > 0L);
+    }, {
+        // Test body - runs with timing
+        out->test_flags |= FASTEST_ASSERT_EQ;
+        out->exit_status |= add(2, 3) == 5 ? FASTEST_SUCCESS : FASTEST_ERROR_ASSERT;
+        out->exit_status |= FASTEST_DEFAULT_LOG;
+    }
+)
 
 /*
  * Test function for custom mode
@@ -61,7 +66,7 @@ void test(FASTEST_TestOutput *out) {
 * - Optional callback parameter for post-test processing (NULL here)
 * - Good for complex tests that need multiple assertions or setup/teardown
 */
-FASTEST_CUSTOMTEST("custom", test, NULL);
+FASTEST_CUSTOMTEST("custom test", FASTEST_TIME_NS | FASTEST_FAIL_ERROR, test, NULL);
 
 int main(void)
 {
@@ -72,8 +77,6 @@ int main(void)
      * - Syntax: FASTEST_QUICKTEST(name, function, expected_value, flags, arg1, arg2, ...)
      * - Best for simple unit tests of pure functions
      */
-    FASTEST_QUICKTEST_DELEGATE("Addition", add, 6, (FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_NS), 2, 3);
-
     FASTEST_QUICKTEST("Addition", add(2, 3) == 6, (FASTEST_ASSERT_EQ | FASTEST_FAIL_ERROR | FASTEST_TIME_NS));
 
 
