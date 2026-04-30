@@ -1,11 +1,9 @@
-#include "fastest/quick_tests.h"
 #include "fastest/custom_tests.h"
+#include "fastest/quick_tests.h"
 #include "fastest/tests.h"
 
 // Simple function to test
-int add(int a, int b) {
-    return a + b;
-}
+int add(int a, int b) { return a + b; }
 
 // Callback function for inline mode - executed after test body completes
 void inline_callback(FASTEST_TestOutput_t *out) {
@@ -14,11 +12,12 @@ void inline_callback(FASTEST_TestOutput_t *out) {
 }
 
 /*
- * MODE 3: INLINE MODE (FASTEST_CUSTOMTEST_INLINE)
+ * MODE 4: INLINE MODE (FASTEST_CUSTOMTEST_INLINE)
  * - Combines test body and callback in a single macro
  * - Test body runs inline, then callback is invoked
  * - Uses __attribute__((constructor)) to run automatically before main()
- * - Useful for tests that need post-execution processing with a separate callback function
+ * - Useful for tests that need post-execution processing with a separate
+ * callback function
  */
 FASTEST_CUSTOMTEST_INLINE("inline", FASTEST_TIME_NS | FASTEST_FAIL_ERROR,
     inline_callback,
@@ -30,11 +29,12 @@ FASTEST_CUSTOMTEST_INLINE("inline", FASTEST_TIME_NS | FASTEST_FAIL_ERROR,
 )
 
 /*
- * MODE 4: DOUBLE INLINE MODE (FASTEST_CUSTOMTEST_DINLINE)
+ * MODE 5: DOUBLE INLINE MODE (FASTEST_CUSTOMTEST_DINLINE)
  * - Both test body AND callback body are defined inline
  * - Most compact form - everything in one macro invocation
  * - Uses __attribute__((constructor)) to run automatically before main()
- * - Ideal for self-contained tests where callback logic is simple and specific to this test
+ * - Ideal for self-contained tests where callback logic is simple and specific
+ * to this test
  */
 FASTEST_CUSTOMTEST_DINLINE("Dinline", FASTEST_TIME_NS | FASTEST_FAIL_ERROR | FASTEST_DEFAULT_LOG,
     {
@@ -50,7 +50,11 @@ FASTEST_CUSTOMTEST_DINLINE("Dinline", FASTEST_TIME_NS | FASTEST_FAIL_ERROR | FAS
 
 /*
  * Test function for custom mode
- * Traditional function-based test - receives test output structure as parameter
+ * MODE 3: CUSTOM TEST MODE (FASTEST_CUSTOMTEST)
+ * - Uses a separate test function that you define
+ * - Provides more control over test logic and assertions
+ * - Optional callback parameter for post-test processing (NULL here)
+ * - Good for complex tests that need multiple assertions or setup/teardown
  */
 void test(FASTEST_TestOutput_t *out) {
     out->test_flags |= FASTEST_ASSERT_EQ;
@@ -80,28 +84,15 @@ int main(void)
 
 
 
-    return 0;
+  return 0;
 }
 
 /*
- * FASTEST FRAMEWORK - 4 TESTING MODES SUMMARY:
- * 
- * 1. QUICKTEST: Direct function testing with arguments
- *    - Simplest, most concise
- *    - Limited to testing single function calls
- * 
- * 2. CUSTOMTEST: Function-based testing with optional callback
- *    - Traditional approach, good code organization
- *    - Test logic in separate function
- *    - Runs in main() - manual invocation
- * 
- * 3. INLINE: Inline test body with separate callback function
- *    - Test logic inline, callback separate
- *    - Auto-runs before main()
- *    - Good when callback is reused across tests
- * 
- * 4. DINLINE: Fully inline test body and callback
- *    - Everything in one place
- *    - Auto-runs before main()
- *    - Most compact for self-contained tests
+ * FASTEST FRAMEWORK - 5 TESTING MODES SUMMARY:
+ *
+ * 1. QUICKTEST DELEGATE: Direct function call with arguments
+ * 2. QUICKTEST (expression): Boolean expression evaluated inline
+ * 3. CUSTOMTEST: Function-based testing with optional callback
+ * 4. INLINE: Inline test body with separate callback function
+ * 5. DOUBLE INLINE: Fully inline test body and callback
  */
