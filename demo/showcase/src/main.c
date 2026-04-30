@@ -1,7 +1,6 @@
 #include "fastest/quick_tests.h"
 #include "fastest/custom_tests.h"
 #include "fastest/tests.h"
-#include <stdio.h>
 
 // Simple function to test
 int add(int a, int b) {
@@ -9,7 +8,7 @@ int add(int a, int b) {
 }
 
 // Callback function for inline mode - executed after test body completes
-void inline_callback(FASTEST_TestOutput *out) {
+void inline_callback(FASTEST_TestOutput_t *out) {
     (void)(out);
     DEBUG_PRINTF("%s executed mem err: %d", out->test_name, (out->exit_status & FASTEST_ERROR_ASSERT) > 0L);
 }
@@ -53,7 +52,7 @@ FASTEST_CUSTOMTEST_DINLINE("Dinline", FASTEST_TIME_NS | FASTEST_FAIL_ERROR | FAS
  * Test function for custom mode
  * Traditional function-based test - receives test output structure as parameter
  */
-void test(FASTEST_TestOutput *out) {
+void test(FASTEST_TestOutput_t *out) {
     out->test_flags |= FASTEST_ASSERT_EQ;
     out->exit_status |= add(2, 3) == 5 ? FASTEST_SUCCESS : FASTEST_ERROR_ASSERT;
     out->exit_status |= FASTEST_DEFAULT_LOG;

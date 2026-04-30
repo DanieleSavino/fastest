@@ -1,28 +1,63 @@
 #include "fastest/tests.h"
+#include <cstddef>
 #include <cstdint>
+#include <string>
+#include <string_view>
+#include <algorithm>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcpp"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#pragma GCC diagnostic pop
 
-// Tell C++ that these functions use C-style linkage
 extern "C" {
-    #include "fastest/test_list.h"
-    #include "fastest/logging.h"
+#include "fastest/test_list.h"
+#include "fastest/logging.h"
 }
 
 namespace py = pybind11;
 using namespace pybind11::literals;
 
-std::string sanitize_name(const char* name) {
+/* ------------------------------------------------------------------ */
+/*  Error handling bridge                                             */
+/* ------------------------------------------------------------------ */
+
+static inline void throw_if_error(FASTEST_Err_t err, const char *where) {
+    if (err == FASTEST_OK)
+        return;
+
+    std::string msg = std::string(where) + ": " + FASTEST_strerr(err);
+
+    switch (err) {
+        case FASTEST_ERR_OOM:
+            throw std::bad_alloc();
+        case FASTEST_ERR_NULLPTR:
+            throw py::value_error(msg);
+        case FASTEST_ERR_NOT_FOUND:
+            throw py::key_error(msg);
+        case FASTEST_ERR_OUT_OF_BOUNDS:
+            throw py::index_error(msg);
+        default:
+            throw std::runtime_error(msg);
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                           */
+/* ------------------------------------------------------------------ */
+
+static std::string sanitize_name(const char *name) {
     std::string s(name);
     std::replace(s.begin(), s.end(), '/', '_');
     std::replace(s.begin(), s.end(), '-', '_');
     return s;
 }
 
-static py::dict test_to_dict(const FASTEST_SchedTest *test) {
+static py::dict test_to_dict(const FASTEST_SchedTest_t *test) {
     return py::dict(
         "test_name"_a    = test->test_name,
-        "status"_a       = FASTEST_strstatus(test->status),
+        "status"_a       = FASTEST_str_status(test->status),
         "test_flags"_a   = test->out.test_flags,
         "exit_status"_a  = test->out.exit_status,
         "allocation"_a   = test->out.allocation,
@@ -31,92 +66,116 @@ static py::dict test_to_dict(const FASTEST_SchedTest *test) {
     );
 }
 
+/* ------------------------------------------------------------------ */
+/*  Module                                                            */
+/* ------------------------------------------------------------------ */
+
 PYBIND11_MODULE(fastest, m) {
 
-    py::module_ tests_subm = m.def_submodule("tests", "Auto-generated test constants");
+    py::module_ tests_subm =
+        m.def_submodule("tests", "Auto-generated test constants");
 
-    // Add tests symbols
-    FASTEST_list_t *list = nullptr;
-    if (FASTEST_list_getInstance(&list) == FASTEST_SUCCESS && list) {
+    /* -------------------------------------------------------------- */
+    /* Export test names as constants                                 */
+    /* -------------------------------------------------------------- */
+    {
+        FASTEST_List_t *list = nullptr;
+        FASTEST_Err_t err = FASTEST_list_get_instance(&list);
+        throw_if_error(err, "FASTEST_list_get_instance");
 
         for (size_t i = 0; i < list->len; ++i) {
-            const FASTEST_SchedTest *test = &list->_buffer[i];
+            const FASTEST_SchedTest_t *test = &list->_buffer[i];
 
-            if (test && test->test_name) {
-                std::string py_symbol = sanitize_name(test->test_name);
-                tests_subm.attr(py_symbol.c_str()) = test->test_name;
-            }
+            if (!test || !test->test_name)
+                continue;
+
+            std::string py_symbol = sanitize_name(test->test_name);
+            tests_subm.attr(py_symbol.c_str()) = test->test_name;
         }
     }
 
+    /* -------------------------------------------------------------- */
+    /* Get single test                                                */
+    /* -------------------------------------------------------------- */
     m.def("get_test", [](const char *name) -> py::object {
-        FASTEST_list_t *list;
-        FASTEST_list_getInstance(&list);
 
-        FASTEST_SchedTest *test;
+        FASTEST_List_t *list = nullptr;
+        FASTEST_SchedTest_t *test = nullptr;
 
-        uint64_t err;
-        FASTEST_CHECK(FASTEST_list_get_name(list, name, &test), &err, not_found);
+        FASTEST_Err_t err;
 
-        if(! (err & FASTEST_SUCCESS)) {
-            FASTEST_PrintError(err);
-        }
+        err = FASTEST_list_get_instance(&list);
+        throw_if_error(err, "FASTEST_list_get_instance");
+
+        err = FASTEST_list_get_name(list, name, &test);
+        throw_if_error(err, "FASTEST_list_get_name");
 
         return test_to_dict(test);
-
-    not_found:
-        return py::none();
-
     });
 
+    /* -------------------------------------------------------------- */
+    /* Get subtests                                                   */
+    /* -------------------------------------------------------------- */
     m.def("get_subtests", [](const char *prefix) -> py::list {
-        FASTEST_list_t *list;
-        FASTEST_list_getInstance(&list);
+
+        FASTEST_List_t *list = nullptr;
+
+        FASTEST_Err_t err = FASTEST_list_get_instance(&list);
+        throw_if_error(err, "FASTEST_list_get_instance");
 
         py::list results;
 
-        std::string search_str = std::string(prefix) + "/";
+        std::string search(prefix);
+        search += "/";
 
         for (size_t i = 0; i < list->len; ++i) {
-            FASTEST_SchedTest *test = &list->_buffer[i];
+            auto *test = &list->_buffer[i];
 
-            if (test && test->test_name) {
-                std::string_view name(test->test_name);
+            if (!test || !test->test_name)
+                continue;
 
-                if (name.substr(0, search_str.size()) == search_str) {
-                    results.append(test_to_dict(test));
-                }
-            }
-        }
+            std::string_view name(test->test_name);
 
-        return results;
-    });
-
-    m.def("get_tests", []() -> py::list {
-        FASTEST_list_t *list;
-        FASTEST_list_getInstance(&list);
-
-        py::list results;
-
-        for (size_t i = 0; i < list->len; ++i) {
-            FASTEST_SchedTest *test = &list->_buffer[i];
-
-            if (test) {
+            if (name.substr(0, search.size()) == search)
                 results.append(test_to_dict(test));
-            }
         }
 
         return results;
     });
 
-    m.def("run_test", [](const char *name) {
-        FASTEST_list_t *list;
-        FASTEST_list_getInstance(&list);
+    /* -------------------------------------------------------------- */
+    /* Get all tests                                                  */
+    /* -------------------------------------------------------------- */
+    m.def("get_tests", []() -> py::list {
 
-        uint64_t err = FASTEST_list_exec_name(list, name);
+        FASTEST_List_t *list = nullptr;
 
-        if(! (err & FASTEST_SUCCESS)) {
-            FASTEST_PrintError(err);
+        FASTEST_Err_t err = FASTEST_list_get_instance(&list);
+        throw_if_error(err, "FASTEST_list_get_instance");
+
+        py::list results;
+
+        for (size_t i = 0; i < list->len; ++i) {
+            auto *test = &list->_buffer[i];
+
+            if (test)
+                results.append(test_to_dict(test));
         }
+
+        return results;
+    });
+
+    /* -------------------------------------------------------------- */
+    /* Run test                                                       */
+    /* -------------------------------------------------------------- */
+    m.def("run_test", [](const char *name) {
+
+        FASTEST_List_t *list = nullptr;
+
+        FASTEST_Err_t err = FASTEST_list_get_instance(&list);
+        throw_if_error(err, "FASTEST_list_get_instance");
+
+        err = FASTEST_list_exec_name(list, name);
+        throw_if_error(err, "FASTEST_list_exec_name");
     });
 }
