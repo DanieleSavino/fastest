@@ -24,27 +24,25 @@ FASTEST_CUSTOMTEST_INLINE("inline", FASTEST_TIME_NS | FASTEST_FAIL_ERROR,
     {
         out->test_flags |= FASTEST_ASSERT_EQ;
         out->exit_status |= add(2, 3) == 5 ? FASTEST_SUCCESS : FASTEST_ERROR_ASSERT;
-        out->exit_status |= FASTEST_DEFAULT_LOG;
     }
 )
 
 /*
- * MODE 5: DOUBLE INLINE MODE (FASTEST_CUSTOMTEST_DINLINE)
+ * MODE 4: DOUBLE INLINE MODE (FASTEST_CUSTOMTEST_DINLINE)
  * - Both test body AND callback body are defined inline
  * - Most compact form - everything in one macro invocation
  * - Uses __attribute__((constructor)) to run automatically before main()
  * - Ideal for self-contained tests where callback logic is simple and specific
  * to this test
  */
-FASTEST_CUSTOMTEST_DINLINE("Dinline", FASTEST_TIME_NS | FASTEST_FAIL_ERROR | FASTEST_DEFAULT_LOG,
+FASTEST_CUSTOMTEST_DINLINE("Dinline", FASTEST_TIME_NS | FASTEST_FAIL_ERROR,
     {
         // Callback body - runs after test and timing
         DEBUG_PRINTF("%s executed mem err: %d", out->test_name, (out->exit_status & FASTEST_ERROR_ASSERT) > 0L);
     }, {
         // Test body - runs with timing
         out->test_flags |= FASTEST_ASSERT_EQ;
-        out->exit_status |= add(2, 3) == 5 ? FASTEST_SUCCESS : FASTEST_ERROR_ASSERT;
-        out->exit_status |= FASTEST_DEFAULT_LOG;
+        out->exit_status |= add(2, 3) == 6 ? FASTEST_SUCCESS : FASTEST_ERROR_ASSERT;
     }
 )
 
@@ -59,7 +57,6 @@ FASTEST_CUSTOMTEST_DINLINE("Dinline", FASTEST_TIME_NS | FASTEST_FAIL_ERROR | FAS
 void test(FASTEST_TestOutput_t *out) {
     out->test_flags |= FASTEST_ASSERT_EQ;
     out->exit_status |= add(2, 3) == 5 ? FASTEST_SUCCESS : FASTEST_ERROR_ASSERT;
-    out->exit_status |= FASTEST_DEFAULT_LOG;
 }
 
 /*
@@ -90,9 +87,8 @@ int main(void)
 /*
  * FASTEST FRAMEWORK - 5 TESTING MODES SUMMARY:
  *
- * 1. QUICKTEST DELEGATE: Direct function call with arguments
- * 2. QUICKTEST (expression): Boolean expression evaluated inline
- * 3. CUSTOMTEST: Function-based testing with optional callback
- * 4. INLINE: Inline test body with separate callback function
- * 5. DOUBLE INLINE: Fully inline test body and callback
+ * 1. QUICKTEST (expression): Boolean expression evaluated inline
+ * 2. CUSTOMTEST: Function-based testing with optional callback
+ * 3. INLINE: Inline test body with separate callback function
+ * 4. DOUBLE INLINE: Fully inline test body and callback
  */

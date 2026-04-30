@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 
-import showcase as t
+import fastest
 
-target = t.tests.custom_test
+pool1 = fastest.pool("pool1", fastest.tests.Dinline, fastest.tests.custom_test)
+pool2 = fastest.pool("pool2", fastest.tests.inline, fastest.tests.custom_test)
 
-print(t.get_tests())
-
-t.run_test(target)
-
-print(t.get_test(target))
+fastest.compare(pool1, pool2, n_repeats=5).report()
