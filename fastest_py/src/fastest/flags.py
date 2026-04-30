@@ -7,6 +7,8 @@ strerror-style helpers for exit_status and test_flags.
 
 from __future__ import annotations
 
+from .logging import color
+
 # ── Test flags ────────────────────────────────────────────────────────────────
 
 ASSERT_EQ  = 1 << 0
@@ -68,14 +70,14 @@ def strtime(flags: int) -> str:
 
 def strexit(exit_status: int, flags: int = 0) -> str:
     if exit_status & SUCCESS:
-        return "SUCCESS"
+        return color("SUCCESS", "green")
     if exit_status & SKIPPED:
-        return "SKIPPED"
+        return color("SKIPPED", "yellow")
     if exit_status & INCOMPLETE:
-        return "INCOMPLETE"
+        return color("INCOMPLETE", "blue")
     if exit_status & ERROR_ASSERT:
         detail = strassert(flags)
-        return f"{detail} failed" if detail else "ASSERT failed"
+        return color(f"{detail} failed" if detail else "ASSERT failed", "red")
     _errors = [
         (ERROR_UNEXPECTED, "Unexpected result"),
         (ERROR_EXCEPTION,  "Exception occurred"),
@@ -92,14 +94,14 @@ def strexit(exit_status: int, flags: int = 0) -> str:
     ]
     for bit, msg in _errors:
         if exit_status & bit:
-            return msg
-    return "Unknown status"
+            return color(msg, "red")
+    return color("Unknown status", "red")
 
 def symbol(exit_status: int) -> str:
-    if exit_status & SUCCESS:    return "✓"
-    if exit_status & SKIPPED:    return "~"
-    if exit_status & INCOMPLETE: return "?"
-    return "✗"
+    if exit_status & SUCCESS:    return color("✓", "green")
+    if exit_status & SKIPPED:    return color("~", "blue")
+    if exit_status & INCOMPLETE: return color("?", "yellow")
+    return color("✗", "red")
 
 def passed(exit_status: int) -> bool:
     return bool(exit_status & SUCCESS)
@@ -129,5 +131,5 @@ def strtest(test: dict) -> str:
     if time:
         parts.append(time)
     if leak:
-        parts.append(f"⚠ {leak}")
+        parts.append(f"{color('⚠', 'yellow')} {leak}")
     return "  ".join(parts)

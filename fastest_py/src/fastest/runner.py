@@ -8,24 +8,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from . import flags
-#
-# -- ANSI colour helpers --------------------------------------------------------
-_ANSI = {
-    "reset":   "\033[0m",
-    "green":   "\033[32m",
-    "red":     "\033[31m",
-    "yellow":  "\033[33m",
-    "blue":    "\033[34m",
-    "magenta": "\033[35m",
-    "cyan":    "\033[36m",
-    "dim":     "\033[2m",
-    "bold":    "\033[1m",
-}
-
-def _c(text: str, colour: str) -> str:
-    """Wrap text in ANSI colour codes (no-op if colour unknown)."""
-    code = _ANSI.get(colour, "")
-    return f"{code}{text}{_ANSI['reset']}" if code else text
+from .logging import color
 
 # ── Stats ─────────────────────────────────────────────────────────────────────
 
@@ -179,11 +162,24 @@ class Runner:
     def run_test(self, name: str) -> None:
         self.backend.run_test(name)
 
+    def run_log(self, name: str) -> dict:
+        self.run_test(name)
+        result = self.get_test(name)
+        print(flags.strtest(result))
+        return result
+
     def run_all(self) -> None:
         for t in self.get_tests():
             if self.verbose:
                 print(f"  running {t['test_name']}")
             self.run_test(t["test_name"])
+
+    def run_log_all(self, tests=None) -> None:
+        if(tests is None):
+            tests = self.get_tests()
+
+        for t in tests:
+            self.run_log(t["test_name"])
 
     # ── Pool constructors ─────────────────────────────────────────────────────
 
@@ -257,7 +253,7 @@ def _report(result: CompareResult) -> None:
         all_means = [pool_data[t].mean for t in pool.tests]
         max_mean  = max(all_means) if all_means else 1.0
 
-        print(f"\n  pool: {_c(pool.name, 'bold')}")
+        print(f"\n  pool: {color(pool.name, 'bold')}")
         print(f"  {'test':<35} {'':2} {'mean':>12}  {'stddev':>10}  {'min':>10}  {'max':>10}  status")
         print(f"  {'─'*35} {'─'*2} {'─'*12}  {'─'*10}  {'─'*10}  {'─'*10}  {'─'*20}")
 
@@ -270,25 +266,12 @@ def _report(result: CompareResult) -> None:
             sym  = flags.symbol(status_code)
             desc = flags.strexit(status_code, 0)
 
-            # Colour the symbol based on result
-            if flags.passed(status_code):
-                col_sym = _c(sym, "green")
-            elif status_code & flags.SKIPPED:
-                col_sym = _c(sym, "dim")
-            elif status_code & flags.INCOMPLETE:
-                col_sym = _c(sym, "yellow")
-            else:
-                col_sym = _c(sym, "red")
-
-            # Colour the failure description red
-            col_desc = _c(desc, "green" if flags.passed(status_code) else "red")
-
             print(
-                f"  {name:<35} {col_sym:<4} {_fmt_ns(s.mean)}  "
-                f"{_fmt_ns(s.stddev)}  {_fmt_ns(s.min)}  {_fmt_ns(s.max)}  {col_desc}"
+                f"  {name:<35} {sym:<4} {_fmt_ns(s.mean)}  "
+                f"{_fmt_ns(s.stddev)}  {_fmt_ns(s.min)}  {_fmt_ns(s.max)}  {desc}"
             )
             # Print the bar below (it stays uncoloured, or you can colour it too)
-            print(f"  {'':37} {_c(bar, 'blue')}")
+            print(f"  {'':37} {color(bar, 'blue')}")
 
     # Cross‑comparison section with colour hints
     if result.comparisons:
@@ -305,7 +288,7 @@ def _report(result: CompareResult) -> None:
                 )
                 # Dim the first pool’s entry (the baseline)
                 if pair["pool"] == result.pools[0].name:
-                    line = f"    {_c(pair['pool'] + ' (base)', 'dim'):<25} {pair['test']:<30} {_fmt_ns(pair['mean_ns'])}  {ratio_str}"
+                    line = f"    {color(pair['pool'] + ' (base)', 'dim'):<25} {pair['test']:<30} {_fmt_ns(pair['mean_ns'])}  {ratio_str}"
                 else:
                     line = f"    {pair['pool']:<25} {pair['test']:<30} {_fmt_ns(pair['mean_ns'])}  {ratio_str}"
                 print(line)
