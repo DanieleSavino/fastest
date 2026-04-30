@@ -1,16 +1,14 @@
 #include "fastest/custom_tests.h"
 #include "fastest/quick_tests.h"
 #include "fastest/tests.h"
-#include <stdio.h>
 
 // Simple function to test
 int add(int a, int b) { return a + b; }
 
 // Callback function for inline mode - executed after test body completes
-void inline_callback(FASTEST_TestOutput *out) {
-  (void)(out);
-  DEBUG_PRINTF("%s executed mem err: %d", out->test_name,
-               (out->exit_status & FASTEST_ERROR_ASSERT) > 0L);
+void inline_callback(FASTEST_TestOutput_t *out) {
+    (void)(out);
+    DEBUG_PRINTF("%s executed mem err: %d", out->test_name, (out->exit_status & FASTEST_ERROR_ASSERT) > 0L);
 }
 
 /*
@@ -58,10 +56,10 @@ FASTEST_CUSTOMTEST_DINLINE("Dinline", FASTEST_TIME_NS | FASTEST_FAIL_ERROR | FAS
  * - Optional callback parameter for post-test processing (NULL here)
  * - Good for complex tests that need multiple assertions or setup/teardown
  */
-void test(FASTEST_TestOutput *out) {
-  out->test_flags |= FASTEST_ASSERT_EQ;
-  out->exit_status |= add(2, 3) == 5 ? FASTEST_SUCCESS : FASTEST_ERROR_ASSERT;
-  out->exit_status |= FASTEST_DEFAULT_LOG;
+void test(FASTEST_TestOutput_t *out) {
+    out->test_flags |= FASTEST_ASSERT_EQ;
+    out->exit_status |= add(2, 3) == 5 ? FASTEST_SUCCESS : FASTEST_ERROR_ASSERT;
+    out->exit_status |= FASTEST_DEFAULT_LOG;
 }
 
 /*

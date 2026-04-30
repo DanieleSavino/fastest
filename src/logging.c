@@ -2,63 +2,11 @@
 #include "fastest/tests.h"
 #include <stdint.h>
 
-// Helper to convert exit_status and flags to string
-static inline const char *FASTEST_ErrorToString(uint64_t exit_status,
-                                                uint64_t flags) {
-    if (exit_status & FASTEST_SUCCESS)
-        return "SUCCESS";
-
-    if (exit_status & FASTEST_ERROR_ASSERT) {
-        if (flags & FASTEST_ASSERT_EQ)
-            return "ASSERT_EQ failed";
-        if (flags & FASTEST_ASSERT_NEQ)
-            return "ASSERT_NEQ failed";
-        if (flags & FASTEST_ASSERT_GT)
-            return "ASSERT_GT failed";
-        if (flags & FASTEST_ASSERT_GE)
-            return "ASSERT_GE failed";
-        if (flags & FASTEST_ASSERT_LT)
-            return "ASSERT_LT failed";
-        if (flags & FASTEST_ASSERT_LE)
-            return "ASSERT_LE failed";
-        return "ASSERT failed";
-    }
-
-    if (exit_status & FASTEST_ERROR_UNEXPECTED)
-        return "Unexpected result";
-    if (exit_status & FASTEST_ERROR_EXCEPTION)
-        return "Exception occurred";
-    if (exit_status & FASTEST_ERROR_MEMORY)
-        return "Memory error";
-    if (exit_status & FASTEST_ERROR_TIMEOUT)
-        return "Timeout";
-    if (exit_status & FASTEST_ERROR_RESOURCE)
-        return "Resource error";
-    if (exit_status & FASTEST_ERROR_MPI)
-        return "MPI error";
-    if (exit_status & FASTEST_ERROR_OMP)
-        return "OpenMP error";
-    if (exit_status & FASTEST_ERROR_CUDA)
-        return "CUDA error";
-    if (exit_status & FASTEST_ERROR_INTERNAL)
-        return "Internal framework error";
-    if (exit_status & FASTEST_ERROR_UNKNOWN)
-        return "Unknown error";
-    if(exit_status & FASTEST_ERROR_COLLISION)
-        return "Collision in test names";
-
-    return "Unknown status";
-}
-
-void FASTEST_PrintError(uint64_t exit_status) {
-    ERROR_PRINTF("%s", FASTEST_ErrorToString(exit_status, 0xFFFFFFFF));
-}
-
-void FASTEST_Print_result(const FASTEST_TestOutput *out) {
+void FASTEST_print_result(const FASTEST_TestOutput_t *out) {
     if (!out || !(out->exit_status & FASTEST_DEFAULT_LOG))
         return;
     const char *errstr =
-        FASTEST_ErrorToString(out->exit_status, out->test_flags);
+        FASTEST_strexit(out->exit_status, out->test_flags);
 
     // Print success / error / warning / log based on flags
     if (out->exit_status & FASTEST_SUCCESS) {
