@@ -61,3 +61,9 @@ tests/
 *.bmp
 *.gif
 *.jpeg
+
+!examples/*.png
+!examples/*.jpg
+!examples/*.bmp
+!examples/*.gif
+!examples/*.jpeg
