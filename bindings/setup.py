@@ -54,11 +54,13 @@ class FastestBuildExt(build_ext):
             ext.name         = self.module_name
             ext.sources      = [patched]
             ext.include_dirs = [include_dir, pybind11.get_include()]
+            extra_libs = os.environ.get("FASTEST_EXTRA_LIBS", "").split()
+
             if sys.platform == "darwin":
-                ext.extra_link_args = ["-Wl,-all_load", fastest_lib, self.user_lib]
+                ext.extra_link_args = ["-Wl,-all_load", fastest_lib, self.user_lib] + extra_libs
             else:
                 ext.extra_link_args = ["-Wl,--whole-archive", fastest_lib, self.user_lib,
-                                       "-Wl,--no-whole-archive"]
+                                    "-Wl,--no-whole-archive"] + extra_libs
 
     def run(self):
         super().run()
