@@ -54,6 +54,7 @@ class FastestBuildExt(build_ext):
             ext.name         = self.module_name
             ext.sources      = [patched]
             ext.include_dirs = [include_dir, pybind11.get_include()]
+            ext.extra_compile_args = os.environ.get("FASTEST_EXTRA_COMPILE_ARGS", "").split()
             extra_libs = os.environ.get("FASTEST_EXTRA_LIBS", "").split()
 
             if sys.platform == "darwin":
