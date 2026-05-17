@@ -104,6 +104,7 @@ class Plotter:
          .set_title("BINE vs RING – AllReduce scaling")
          .set_x_label("Message size")
          .set_y_label("Latency (ns)")           # or "Δ vs RING (%)" for DIFF
+         .set_x_tick_labels(["1kB","16kB","256kB","4MB","64MB"])
          .set_bg_color("#313131")
          .set_pool_colors("#ff5f5f", "#1f77b4")
          .set_legend(LegendLocation.UPPER_LEFT, fontsize=9)
@@ -111,6 +112,10 @@ class Plotter:
          .set_marker(MarkerStyle.DIAMOND, size=6)
          .plot(result, "output.png", PlotMode.MEDIAN, PlotTransform.DIFF))
     """
+
+    # Sizes that map to human-readable byte labels on the x-axis.
+    # Any sequence passed to set_x_tick_labels() overrides these defaults.
+    SIZES_1KB_64MB: list[str] = ["1kB", "16kB", "256kB", "4MB", "64MB"]
 
     def __init__(self) -> None:
         # Figure defaults
@@ -128,6 +133,11 @@ class Plotter:
         self._label_size: int = 12
         self._tick_color: str = "#333333"
         self._tick_size: int = 10
+
+        # Custom x-axis tick labels (strings, one per data point).
+        # None  → fall back to integer locator (original behaviour).
+        self._x_tick_labels: Optional[list[str]] = None
+        self._x_tick_rotation: int = 30   # degrees; 0 = horizontal
 
         # Grid
         self._show_grid: bool = True
@@ -207,6 +217,26 @@ class Plotter:
 
     def set_tick_size(self, size: int) -> Plotter:
         self._tick_size = size
+        return self
+
+    def set_x_tick_labels(self, labels: list[str],
+                           rotation: int = 30) -> Plotter:
+        """
+        Override the x-axis tick labels with human-readable strings.
+
+        *labels* must have one entry per data-point (i.e. one per test in a
+        pool).  Extra entries are silently ignored; missing entries fall back
+        to the 1-based integer position.
+
+        *rotation* – label angle in degrees (default 30, slanted for
+        readability with long strings like "256kB").  Pass 0 for horizontal.
+
+        Example::
+
+            .set_x_tick_labels(Plotter.SIZES_1KB_64MB)
+        """
+        self._x_tick_labels = list(labels)
+        self._x_tick_rotation = rotation
         return self
 
     def set_grid(self, visible: bool = True, *,
@@ -293,6 +323,27 @@ class Plotter:
                 ])
         return out
 
+    @staticmethod
+    def _ns_formatter() -> ticker.FuncFormatter:
+        """Auto-scale nanosecond y-values to ns / µs / ms / s."""
+        def _fmt(val: float, _pos) -> str:
+            a = abs(val)
+            if a == 0:
+                return "0"
+            if a >= 1e9:
+                return f"{val / 1e9:.3g} s"
+            if a >= 1e6:
+                return f"{val / 1e6:.3g} ms"
+            if a >= 1e3:
+                return f"{val / 1e3:.3g} µs"
+            return f"{val:.3g} ns"
+        return ticker.FuncFormatter(_fmt)
+
+    @staticmethod
+    def _pct_formatter() -> ticker.FuncFormatter:
+        """Format diff y-values as signed percentages."""
+        return ticker.FuncFormatter(lambda val, _: f"{val:+.1f}%")
+
     # ── Main rendering ──────────────────────────────────────────────────────
 
     def plot(self, result: CompareResult, filepath: str,
@@ -320,9 +371,11 @@ class Plotter:
         y_data = self._diff_values(raw) if transform is PlotTransform.DIFF else raw
 
         # --- Plot each pool ---
+        n_points = max((len(p.tests) for p in result.pools), default=0)
+        x_vals = list(range(1, n_points + 1))
+
         for idx, (pool, y_vals) in enumerate(zip(result.pools, y_data)):
-            x_vals = range(1, len(pool.tests) + 1)
-            ax.plot(x_vals, y_vals,
+            ax.plot(x_vals[:len(y_vals)], y_vals,
                     marker=self._marker_style.value,
                     markersize=self._marker_size,
                     linewidth=self._line_width,
@@ -338,7 +391,29 @@ class Plotter:
                        linestyle=LineStyle.DASHED.value,
                        alpha=0.9)
 
-        # --- Labels ---
+        # --- X-axis ticks ---
+        if self._x_tick_labels is not None:
+            ax.set_xticks(x_vals)
+            labels = [
+                self._x_tick_labels[i] if i < len(self._x_tick_labels)
+                else str(i + 1)
+                for i in range(n_points)
+            ]
+            ax.set_xticklabels(
+                labels,
+                rotation=self._x_tick_rotation,
+                ha='right' if self._x_tick_rotation else 'center',
+            )
+        else:
+            ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+
+        # --- Y-axis formatter ---
+        if transform is PlotTransform.DIFF:
+            ax.yaxis.set_major_formatter(self._pct_formatter())
+        else:
+            ax.yaxis.set_major_formatter(self._ns_formatter())
+
+        # --- Axis labels ---
         if self._x_label is not None:
             ax.set_xlabel(self._x_label, color=self._label_color,
                           fontsize=self._label_size)
@@ -346,8 +421,7 @@ class Plotter:
             ax.set_ylabel(self._y_label, color=self._label_color,
                           fontsize=self._label_size)
 
-        # --- Ticks ---
-        ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+        # --- Tick colours / sizes (applied after label override) ---
         ax.tick_params(axis='both', colors=self._tick_color,
                        labelsize=self._tick_size)
 
