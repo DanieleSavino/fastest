@@ -111,6 +111,25 @@ class CompareResult:
         with open(path, "w") as f:
             json.dump(self.to_dict(), f, indent=2)
 
+    def save_csv(self, path: str) -> None:
+        import csv
+        with open(path, "w", newline="") as f:
+            writer = csv.writer(f)
+            # Header
+            writer.writerow([
+                "pool", "test",
+                "mean_ns", "stddev_ns", "min_ns", "max_ns", "median_ns",
+                "samples_ns"
+            ])
+            for pool in self.pools:
+                for test in pool.tests:
+                    s = self.data[pool.name][test]
+                    writer.writerow([
+                        pool.name, test,
+                        s.mean, s.stddev, s.min, s.max, s.median,
+                        json.dumps(s.samples),  # serialize list as JSON string
+                    ])
+
     # ── Report ────────────────────────────────────────────────────────────────
 
     def report(self) -> None:
