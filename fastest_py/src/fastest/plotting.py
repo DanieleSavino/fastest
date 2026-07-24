@@ -7,17 +7,6 @@ from typing import Optional
 
 from .runner import CompareResult
 
-try:
-    import matplotlib.pyplot as plt
-    import matplotlib.ticker as ticker
-    from matplotlib.figure import Figure
-    from matplotlib.axes import Axes
-except ImportError as exc:
-    raise ImportError(
-        "Package 'matplotlib' is required for plotting. "
-        "Install it with `pip install matplotlib`."
-    ) from exc
-
 
 # ── Enums for type-safe configuration ─────────────────────────────────────────
 
@@ -96,6 +85,11 @@ class Plotter:
     Axis labels must be set explicitly via set_x_label / set_y_label; there
     are no auto-generated fallbacks.
 
+    matplotlib is imported lazily, on first construction of a `Plotter`,
+    rather than at module import time. This keeps `import fastest` (and
+    anything that transitively imports `fastest.plotting`, such as
+    `fastest/__init__.py`) cheap for callers that never actually plot.
+
     Example::
 
         from fastest.plotting import Plotter, PlotMode, PlotTransform, LegendLocation, LineStyle
@@ -113,11 +107,17 @@ class Plotter:
          .plot(result, "output.png", PlotMode.MEDIAN, PlotTransform.DIFF))
     """
 
-    # Sizes that map to human-readable byte labels on the x-axis.
-    # Any sequence passed to set_x_tick_labels() overrides these defaults.
-    SIZES_1KB_64MB: list[str] = ["1kB", "16kB", "256kB", "4MB", "64MB"]
-
     def __init__(self) -> None:
+        global plt, ticker
+        try:
+            import matplotlib.pyplot as plt
+            import matplotlib.ticker as ticker
+        except ImportError as exc:
+            raise ImportError(
+                "Package 'matplotlib' is required for plotting. "
+                "Install it with `pip install matplotlib`."
+            ) from exc
+
         # Figure defaults
         self._fig_size: tuple[float, float] = (10.0, 6.0)
         self._fig_dpi: int = 150
@@ -324,7 +324,7 @@ class Plotter:
         return out
 
     @staticmethod
-    def _ns_formatter() -> ticker.FuncFormatter:
+    def _ns_formatter():
         """Auto-scale nanosecond y-values to ns / µs / ms / s."""
         def _fmt(val: float, _pos) -> str:
             a = abs(val)
@@ -340,7 +340,7 @@ class Plotter:
         return ticker.FuncFormatter(_fmt)
 
     @staticmethod
-    def _pct_formatter() -> ticker.FuncFormatter:
+    def _pct_formatter():
         """Format diff y-values as signed percentages."""
         return ticker.FuncFormatter(lambda val, _: f"{val:+.1f}%")
 
