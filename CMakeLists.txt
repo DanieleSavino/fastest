@@ -14,4 +14,5 @@ target_compile_options(fastest_static PRIVATE -Wall -Wextra -O2)
 set_target_properties(fastest_static PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/build
     OUTPUT_NAME fastest
+    POSITION_INDEPENDENT_CODE ON
 )

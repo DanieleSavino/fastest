@@ -17,8 +17,8 @@
     FASTEST_List_t *list = NULL;                                                     \
     if (FASTEST_list_get_instance(&list) != FASTEST_OK) return;                     \
     FASTEST_SchedTest_t entry = {                                                    \
-        .func      = (func_),                                                        \
         .test_name = (name_),                                                        \
+        .func      = (func_),                                                        \
         .callback  = (callback_),                                                    \
         .out       = { .test_flags = (flags_) },                                     \
     };                                                                               \
