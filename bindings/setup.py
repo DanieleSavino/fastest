@@ -60,8 +60,8 @@ class FastestBuildExt(build_ext):
             if sys.platform == "darwin":
                 ext.extra_link_args = ["-Wl,-all_load", fastest_lib, self.user_lib] + extra_libs
             else:
-                ext.extra_link_args = ["-Wl,--whole-archive", fastest_lib, self.user_lib,
-                                    "-Wl,--no-whole-archive"] + extra_libs
+                ext.extra_link_args = ["-Wl,--whole-archive", fastest_lib, self.user_lib] + extra_libs + \
+                    ["-Wl,--no-whole-archive"]
 
     def run(self):
         super().run()
