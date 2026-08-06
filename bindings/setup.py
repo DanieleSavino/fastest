@@ -5,16 +5,18 @@ from setuptools.command.build_ext import build_ext
 
 class FastestBuildExt(build_ext):
     user_options = build_ext.user_options + [
-        ("user-lib=",     None, "path to user's compiled .a"),
-        ("fastest-home=", None, "path to fastest source/build root"),
-        ("module-name=",  None, "python module name (default: fastest)"),
+        ("user-lib=",      None, "path to user's compiled .a"),
+        ("fastest-home=",  None, "path to fastest source root"),
+        ("fastest-build=", None, "path to fastest build dir (default: <fastest-home>/build)"),
+        ("module-name=",   None, "python module name (default: fastest)"),
     ]
 
     def initialize_options(self):
         super().initialize_options()
-        self.user_lib     = None
-        self.fastest_home = None
-        self.module_name  = None
+        self.user_lib      = None
+        self.fastest_home  = None
+        self.fastest_build = None
+        self.module_name   = None
 
     def finalize_options(self):
         super().finalize_options()
@@ -23,17 +25,22 @@ class FastestBuildExt(build_ext):
             self.fastest_home = os.environ.get("FASTEST_HOME")
         if self.fastest_home is None:
             raise RuntimeError("provide --fastest-home=... or set FASTEST_HOME")
+        self.fastest_home = os.path.abspath(os.path.expanduser(self.fastest_home))
+
+        if self.fastest_build is None:
+            self.fastest_build = os.environ.get("FASTEST_BUILD")
+        if self.fastest_build is None:
+            self.fastest_build = os.path.join(self.fastest_home, "build")
+        self.fastest_build = os.path.abspath(os.path.expanduser(self.fastest_build))
 
         if self.user_lib is None:
             self.user_lib = os.environ.get("FASTEST_USER_LIB")
         if self.user_lib is None:
             raise RuntimeError("provide --user-lib=... or set FASTEST_USER_LIB")
+        self.user_lib = os.path.abspath(os.path.expanduser(self.user_lib))
 
         if self.module_name is None:
             self.module_name = os.environ.get("FASTEST_MODULE_NAME", "fastest")
-
-        self.fastest_home = os.path.abspath(os.path.expanduser(self.fastest_home))
-        self.user_lib     = os.path.abspath(os.path.expanduser(self.user_lib))
 
         pybind_src = os.path.join(self.fastest_home, "bindings", "pybind.cpp")
         with open(pybind_src) as f:
@@ -47,7 +54,7 @@ class FastestBuildExt(build_ext):
         with open(patched, "w") as f:
             f.write(content)
 
-        fastest_lib = os.path.join(self.fastest_home, "build", "libfastest.a")
+        fastest_lib = os.path.join(self.fastest_build, "libfastest.a")
         include_dir = os.path.join(self.fastest_home, "include")
 
         for ext in self.extensions:
@@ -60,8 +67,8 @@ class FastestBuildExt(build_ext):
             if sys.platform == "darwin":
                 ext.extra_link_args = ["-Wl,-all_load", fastest_lib, self.user_lib] + extra_libs
             else:
-                ext.extra_link_args = ["-Wl,--whole-archive", fastest_lib, self.user_lib,
-                                    "-Wl,--no-whole-archive"] + extra_libs
+                ext.extra_link_args = ["-Wl,--whole-archive", fastest_lib, self.user_lib] + extra_libs + \
+                    ["-Wl,--no-whole-archive"]
 
     def run(self):
         super().run()
