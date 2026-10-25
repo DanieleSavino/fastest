@@ -63,7 +63,10 @@ static py::dict test_to_dict(const FASTEST_SchedTest_t *test) {
         "exit_status"_a  = test->out.exit_status,
         "allocation"_a   = test->out.allocation,
         "deallocation"_a = test->out.deallocation,
-        "time_ns"_a      = test->out.time_ns
+        "time_ns"_a      = test->out.time_ns,
+        "avg_ns"_a       = test->out.avg_ns,
+        "stddev_ns"_a    = test->out.stddev_ns,
+        "n_iters"_a      = test->out.n_iters
     );
 }
 

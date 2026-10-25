@@ -282,6 +282,9 @@ Each test dict:
     "allocation":   int,
     "deallocation": int,
     "time_ns":      int,   # always nanoseconds
+    "avg_ns":       float, # optional inner-sample mean, ns (0.0 if the test doesn't set it)
+    "stddev_ns":    float, # optional inner-sample population stddev, ns (0.0 if unset)
+    "n_iters":      int,   # number of inner samples behind avg_ns / stddev_ns (0 if unset)
 }
 ```
 
