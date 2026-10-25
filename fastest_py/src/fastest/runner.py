@@ -13,9 +13,30 @@ from .logging import color
 # ── Stats ─────────────────────────────────────────────────────────────────────
 
 class Stats:
-    """Descriptive statistics over a list of nanosecond samples."""
+    """Descriptive statistics over a list of nanosecond samples.
 
-    def __init__(self, samples: list[int], exit_statuses: list[int] | None = None):
+    `samples` holds one headline value (`time_ns`) per repeat, so mean / stddev /
+    min / max / median are statistics ACROSS REPEATS (stddev is 0 for a single
+    repeat).
+
+    `iter_avg_samples` / `iter_stddev_samples` are optional: one value per repeat
+    of the test's own inner-sample mean / population stddev (`avg_ns` /
+    `stddev_ns` in the backend dict, e.g. over the timed iterations of one
+    launch). They are kept per repeat and also combined into `iter_avg` /
+    `iter_stddev`, the mean / population stddev of ALL inner samples of all
+    repeats (law of total variance, weighted by `iter_n_samples`, the inner
+    sample count of each repeat); `iter_n` is their total. All are None when the
+    backend did not provide them.
+    """
+
+    def __init__(
+        self,
+        samples: list[int],
+        exit_statuses: list[int] | None = None,
+        iter_avg_samples: list[float] | None = None,
+        iter_stddev_samples: list[float] | None = None,
+        iter_n_samples: list[int] | None = None,
+    ):
         self.samples = samples
         n = len(samples)
         self.mean   = sum(samples) / n if n else 0.0
@@ -23,10 +44,36 @@ class Stats:
         self.stddev = math.sqrt(variance)
         self.min    = min(samples) if samples else 0
         self.max    = max(samples) if samples else 0
-        self.median = sorted(samples)[n // 2] if samples else 0
+        if not samples:
+            self.median = 0
+        else:
+            srt = sorted(samples)
+            self.median = srt[n // 2] if n % 2 else (srt[n // 2 - 1] + srt[n // 2]) / 2
 
         # Keep track of exit status (use the last run's as representative)
         self.last_exit_status = exit_statuses[-1] if exit_statuses else 0
+
+        # Inner-sample (per-iteration) statistics, if the backend provided them.
+        self.iter_avg_samples: list[float] | None = None
+        self.iter_stddev_samples: list[float] | None = None
+        self.iter_avg: float | None = None
+        self.iter_stddev: float | None = None
+        self.iter_n_samples: list[int] | None = None
+        self.iter_n: int | None = None
+        if (iter_avg_samples is not None and iter_stddev_samples is not None
+                and iter_n_samples is not None and n
+                and len(iter_avg_samples) == n and len(iter_stddev_samples) == n
+                and len(iter_n_samples) == n and sum(iter_n_samples) > 0):
+            self.iter_avg_samples = list(iter_avg_samples)
+            self.iter_stddev_samples = list(iter_stddev_samples)
+            self.iter_n_samples = list(iter_n_samples)
+            total = sum(iter_n_samples)
+            self.iter_n = total
+            self.iter_avg = sum(w * a for w, a in zip(iter_n_samples, iter_avg_samples)) / total
+            self.iter_stddev = math.sqrt(sum(
+                w * (sd ** 2 + (a - self.iter_avg) ** 2)
+                for w, a, sd in zip(iter_n_samples, iter_avg_samples, iter_stddev_samples)
+            ) / total)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -36,6 +83,12 @@ class Stats:
             "min_ns":     self.min,
             "max_ns":     self.max,
             "median_ns":  self.median,
+            "iter_avg_ns":          self.iter_avg,
+            "iter_stddev_ns":       self.iter_stddev,
+            "iter_avg_samples_ns":  self.iter_avg_samples,
+            "iter_stddev_samples_ns": self.iter_stddev_samples,
+            "iter_n":               self.iter_n,
+            "iter_n_samples":       self.iter_n_samples,
         }
 
 
@@ -119,7 +172,10 @@ class CompareResult:
             writer.writerow([
                 "pool", "test",
                 "mean_ns", "stddev_ns", "min_ns", "max_ns", "median_ns",
-                "samples_ns"
+                "samples_ns",
+                "iter_avg_ns", "iter_stddev_ns",
+                "iter_avg_samples_ns", "iter_stddev_samples_ns",
+                "iter_n",
             ])
             for pool in self.pools:
                 for test in pool.tests:
@@ -128,6 +184,11 @@ class CompareResult:
                         pool.name, test,
                         s.mean, s.stddev, s.min, s.max, s.median,
                         json.dumps(s.samples),  # serialize list as JSON string
+                        "" if s.iter_avg is None else s.iter_avg,
+                        "" if s.iter_stddev is None else s.iter_stddev,
+                        "" if s.iter_avg_samples is None else json.dumps(s.iter_avg_samples),
+                        "" if s.iter_stddev_samples is None else json.dumps(s.iter_stddev_samples),
+                        "" if s.iter_n is None else s.iter_n,
                     ])
 
     # ── Report ────────────────────────────────────────────────────────────────
@@ -228,14 +289,27 @@ class Runner:
             for test_name in pool.tests:
                 samples: list[int] = []
                 statuses: list[int] = []
+                avgs: list[float | None] = []
+                stddevs: list[float | None] = []
+                ns: list[int | None] = []
                 for _ in range(n_repeats):
                     self.run_test(test_name)
                     result = self.get_test(test_name)
                     samples.append(result["time_ns"])
                     statuses.append(result.get("exit_status", 0))
+                    # absent on backends built before avg_ns/stddev_ns existed
+                    avgs.append(result.get("avg_ns"))
+                    stddevs.append(result.get("stddev_ns"))
+                    ns.append(result.get("n_iters"))
                     if self.verbose:
                         print(flags.strtest(result))
-                data[pool.name][test_name] = Stats(samples, statuses)
+                have_iter = all(v is not None for v in avgs + stddevs + ns)
+                data[pool.name][test_name] = Stats(
+                    samples, statuses,
+                    avgs if have_iter else None,
+                    stddevs if have_iter else None,
+                    ns if have_iter else None,
+                )
 
         return CompareResult(list(pools), n_repeats, data)
 
@@ -256,6 +330,10 @@ def _fmt_ns(ns: float) -> str:
     return f"{ns:>8.2f} ns"
 
 
+def _fmt_opt_ns(ns: float | None) -> str:
+    return f"{'-':>11}" if ns is None else _fmt_ns(ns)
+
+
 def _bar(value: float, max_value: float, width: int = 20) -> str:
     filled = int(round(value / max_value * width)) if max_value else 0
     return "█" * filled + "░" * (width - filled)
@@ -273,8 +351,10 @@ def _report(result: CompareResult) -> None:
         max_mean  = max(all_means) if all_means else 1.0
 
         print(f"\n  pool: {color(pool.name, 'bold')}")
-        print(f"  {'test':<35} {'':2} {'mean':>12}  {'stddev':>10}  {'min':>10}  {'max':>10}  status")
-        print(f"  {'─'*35} {'─'*2} {'─'*12}  {'─'*10}  {'─'*10}  {'─'*10}  {'─'*20}")
+        print(f"  {'test':<35} {'':2} {'mean':>12}  {'stddev':>10}  {'min':>10}  {'max':>10}  "
+              f"{'iter avg':>11}  {'iter sd':>11}  status")
+        print(f"  {'─'*35} {'─'*2} {'─'*12}  {'─'*10}  {'─'*10}  {'─'*10}  "
+              f"{'─'*11}  {'─'*11}  {'─'*20}")
 
         for test_name in pool.tests:
             s    = pool_data[test_name]
@@ -287,7 +367,8 @@ def _report(result: CompareResult) -> None:
 
             print(
                 f"  {name:<35} {sym:<4} {_fmt_ns(s.mean)}  "
-                f"{_fmt_ns(s.stddev)}  {_fmt_ns(s.min)}  {_fmt_ns(s.max)}  {desc}"
+                f"{_fmt_ns(s.stddev)}  {_fmt_ns(s.min)}  {_fmt_ns(s.max)}  "
+                f"{_fmt_opt_ns(s.iter_avg)}  {_fmt_opt_ns(s.iter_stddev)}  {desc}"
             )
             # Print the bar below (it stays uncoloured, or you can colour it too)
             print(f"  {'':37} {color(bar, 'blue')}")

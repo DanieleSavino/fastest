@@ -163,7 +163,10 @@ typedef struct {
     uint64_t    exit_status;
     uint64_t    allocation;
     uint64_t    deallocation;
-    uint64_t    time_ns;
+    uint64_t    time_ns;     /* headline time (e.g. median), integer ns        */
+    double      avg_ns;      /* optional: mean of the test's inner samples, ns */
+    double      stddev_ns;   /* optional: population stddev of those samples  */
+    uint64_t    n_iters;     /* optional: number of inner samples behind them  */
 } FASTEST_TestOutput_t;
 
 /* ------------------------------------------------------------------ */
@@ -199,6 +202,9 @@ NODISCARD static inline FASTEST_Err_t FASTEST_test_cpy(const FASTEST_TestOutput_
     dst->allocation   = src->allocation;
     dst->deallocation = src->deallocation;
     dst->time_ns      = src->time_ns;
+    dst->avg_ns       = src->avg_ns;
+    dst->stddev_ns    = src->stddev_ns;
+    dst->n_iters      = src->n_iters;
 
     return FASTEST_OK;
 }
